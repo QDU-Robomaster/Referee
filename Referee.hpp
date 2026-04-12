@@ -984,6 +984,8 @@ class Referee : public LibXR::Application {
    */
   struct [[gnu::packed]] LauncherPack {
     RobotStatus rs; /* 热量上限和冷却速率 */
+    // PowerHeat ph;
+    uint16_t launcher_id1_17_heat; /* 第1个17mm发射机构的射击热量 */
   };
 
   /**
@@ -992,7 +994,8 @@ class Referee : public LibXR::Application {
    */
   struct [[gnu::packed]] SentryPack {
     /* TODO: 待更新 */
-    RobotStatus rs; /* 热量上限和冷却速率 */
+    RobotStatus rs;
+    GameStatus gs; /* 热量上限和冷却速率 */
   };
 
   /**
@@ -1240,6 +1243,11 @@ class Referee : public LibXR::Application {
 
     const uint16_t CMD_ID = static_cast<uint16_t>(this->pack_.buf_[0]) |
                             (static_cast<uint16_t>(this->pack_.buf_[1]) << 8);
+
+    if (CMD_ID == 0x0001) {
+      __NOP();
+    }
+
     const uint8_t* payload = &this->pack_.buf_[2];
 
     const auto COPY_PAYLOAD = [payload, PAYLOAD_LEN](auto& dst) -> bool {
@@ -1627,9 +1635,15 @@ class Referee : public LibXR::Application {
     }
     this->cp_.rs = this->data_.robot_status;
     this->chassispack_topic_.Publish(this->cp_);
-    this->lp_.rs = this->data_.robot_status;
+    this->lp_.rs.shooter_cooling_value =
+        this->data_.robot_status.shooter_cooling_value;
+    this->lp_.rs.shooter_heat_limit =
+        this->data_.robot_status.shooter_heat_limit;
+    this->lp_.launcher_id1_17_heat =
+        this->data_.power_heat.launcher_id1_17_heat;
     this->launcherpack_topic_.Publish(this->lp_);
     this->sp_.rs = this->data_.robot_status;
+    this->sp_.gs = this->data_.game_status;
     this->sentrypack_topic_.Publish(this->sp_);
   }
 
