@@ -1056,7 +1056,7 @@ class Referee : public LibXR::Application {
         HEADER_SIZE + CMD_ID_SIZE + PAYLOAD_LEN + FRAME_TAIL_SIZE;
 
     if (TOTAL_SIZE > sizeof(tx_buf_)) {
-      return ErrorCode::ARG_ERR;
+      return LibXR::ErrorCode::ARG_ERR;
     }
 
     Header header{};
