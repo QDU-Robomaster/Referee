@@ -1047,7 +1047,7 @@ class Referee : public LibXR::Application {
 
   void BindCMD(CMD& cmd) { cmd_ = &cmd; }
 
-  ErrorCode SendFrame(CommandID cmd_id, const void* payload,
+  LibXR::ErrorCode SendFrame(CommandID cmd_id, const void* payload,
                       uint16_t PAYLOAD_LEN) {
     constexpr size_t HEADER_SIZE = sizeof(Header);
     constexpr size_t CMD_ID_SIZE = sizeof(uint16_t);
@@ -1088,13 +1088,13 @@ class Referee : public LibXR::Application {
   }
 
   template <typename PayloadType>
-  ErrorCode SendFrame(CommandID cmd_id, const PayloadType& payload) {
+  LibXR::ErrorCode SendFrame(CommandID cmd_id, const PayloadType& payload) {
     return SendFrame(cmd_id, &payload,
                      static_cast<uint16_t>(sizeof(PayloadType)));
   }
 
   template <typename PayloadType>
-  ErrorCode SendStudentCmd(CMDID data_cmd_id, uint16_t sender_id,
+  LibXR::ErrorCode SendStudentCmd(CMDID data_cmd_id, uint16_t sender_id,
                            uint16_t receiver_id, const PayloadType& payload) {
     struct [[gnu::packed]] {
       uint16_t data_cmd_id;
@@ -1243,69 +1243,69 @@ class Referee : public LibXR::Application {
     }
   }
 
-  ErrorCode SendUILayerDelete(uint16_t sender_id, uint16_t receiver_id,
+  LibXR::ErrorCode SendUILayerDelete(uint16_t sender_id, uint16_t receiver_id,
                               const UILayerDelete& payload) {
     return SendStudentCmd(CMDID::REF_STDNT_CMD_ID_UI_DEL, sender_id,
                           receiver_id, payload);
   }
 
-  ErrorCode SendUIFigure(uint16_t sender_id, uint16_t receiver_id,
+  LibXR::ErrorCode SendUIFigure(uint16_t sender_id, uint16_t receiver_id,
                          const UIFigure& payload) {
     return SendStudentCmd(CMDID::REF_STDNT_CMD_ID_UI_DRAW1, sender_id,
                           receiver_id, payload);
   }
 
-  ErrorCode SendUIFigure2(uint16_t sender_id, uint16_t receiver_id,
+  LibXR::ErrorCode SendUIFigure2(uint16_t sender_id, uint16_t receiver_id,
                           const UIFigure2& payload) {
     return SendStudentCmd(CMDID::REF_STDNT_CMD_ID_UI_DRAW2, sender_id,
                           receiver_id, payload);
   }
 
-  ErrorCode SendUIFigure5(uint16_t sender_id, uint16_t receiver_id,
+  LibXR::ErrorCode SendUIFigure5(uint16_t sender_id, uint16_t receiver_id,
                           const UIFigure5& payload) {
     return SendStudentCmd(CMDID::REF_STDNT_CMD_ID_UI_DRAW5, sender_id,
                           receiver_id, payload);
   }
 
-  ErrorCode SendUIFigure7(uint16_t sender_id, uint16_t receiver_id,
+  LibXR::ErrorCode SendUIFigure7(uint16_t sender_id, uint16_t receiver_id,
                           const UIFigure7& payload) {
     return SendStudentCmd(CMDID::REF_STDNT_CMD_ID_UI_DRAW7, sender_id,
                           receiver_id, payload);
   }
 
-  ErrorCode SendUICharacter(uint16_t sender_id, uint16_t receiver_id,
+  LibXR::ErrorCode SendUICharacter(uint16_t sender_id, uint16_t receiver_id,
                             const UICharacter& payload) {
     return SendStudentCmd(CMDID::REF_STDNT_CMD_ID_UI_STR, sender_id,
                           receiver_id, payload);
   }
 
-  ErrorCode SendSentryDecision(const SentryDecisionData& payload) {
+  LibXR::ErrorCode SendSentryDecision(const SentryDecisionData& payload) {
     return SendStudentCmd(
         CMDID::REF_STDNT_CMD_ID_SENTRY_CMD, data_.robot_status.robot_id,
         static_cast<uint16_t>(ClientID::REF_CL_REFEREE_SERVER), payload);
   }
 
-  ErrorCode SendRadarDecision(const RadarDecisionData& payload) {
+  LibXR::ErrorCode SendRadarDecision(const RadarDecisionData& payload) {
     return SendStudentCmd(
         CMDID::REF_STDNT_CMD_ID_RADAR_CMD, data_.robot_status.robot_id,
         static_cast<uint16_t>(ClientID::REF_CL_REFEREE_SERVER), payload);
   }
 
-  ErrorCode SendSetVideoTransChannel(uint8_t channel) {
+  LibXR::ErrorCode SendSetVideoTransChannel(uint8_t channel) {
     SetVideoTransChannel payload{};
     payload.value = channel;
     return SendFrame(CommandID::REF_CMD_ID_SET_VIDEO_TRANS_CH, payload);
   }
 
-  ErrorCode SendQueryVideoTransChannel() {
+  LibXR::ErrorCode SendQueryVideoTransChannel() {
     return SendFrame(CommandID::REF_CMD_ID_GET_VIDEO_TRANS_CH, nullptr, 0);
   }
 
-  ErrorCode SendCustomDataToController(const CustomData1& payload) {
+  LibXR::ErrorCode SendCustomDataToController(const CustomData1& payload) {
     return SendFrame(CommandID::REF_CMD_ID_CUSTOM_RECV_DATA, payload);
   }
 
-  ErrorCode SendCustomDataToController(const CustomData2& payload) {
+  LibXR::ErrorCode SendCustomDataToController(const CustomData2& payload) {
     return SendFrame(CommandID::REF_CMD_ID_DATA_TO_CUSTOM_CLIENT, payload);
   }
 
@@ -1331,7 +1331,7 @@ class Referee : public LibXR::Application {
   void FindHeader() {
     while (1) {
       /* 防编译器warning */
-      if (this->uart_->Read({&this->byte_, 1}, this->op_) == ErrorCode::OK) {
+      if (this->uart_->Read({&this->byte_, 1}, this->op_) == LibXR::ErrorCode::OK) {
         if (this->byte_ != 0xA5) {
           continue;
         }
@@ -1368,7 +1368,7 @@ class Referee : public LibXR::Application {
     }
 
     if (this->uart_->Read({this->pack_.buf_, BYTES_AFTER_HEADER}, this->op_) !=
-        ErrorCode::OK) {
+        LibXR::ErrorCode::OK) {
       return false;
     }
 
