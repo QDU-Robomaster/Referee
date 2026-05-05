@@ -20,7 +20,7 @@ constructor_args:
   - baudrate: 115200
   - referee_chassis_tp_name: "chassis_ref"
   - referee_launcher_tp_name: "launcher_ref"
-  - referee_sentry_tp_name: "sentry_ref"
+  - referee_robot_game_tp_name: "robot_game_ref"
   - thread_priority_uart: LibXR::Thread::Priority::LOW
 required_hardware: dma uart
 depends: []
@@ -989,13 +989,13 @@ class Referee : public LibXR::Application {
   };
 
   /**
-   * @brief 哨兵需要的包
+   * @brief 机器人、比赛和发射相关的裁判系统摘要
    *
    */
-  struct [[gnu::packed]] SentryPack {
-    /* TODO: 待更新 */
-    RobotStatus rs; /* 热量上限和冷却速率 */
-    GameStatus gs;  /*比赛信息*/
+  struct [[gnu::packed]] RobotGameRefereePack {
+    RobotStatus robot_status;   /* 机器人状态 */
+    GameStatus game_status;     /* 比赛信息 */
+    LauncherData launcher_data; /* 实时射击数据 */
   };
 
   /**
@@ -1020,7 +1020,7 @@ class Referee : public LibXR::Application {
           uint32_t task_stack_depth_uart, const char* uart, uint32_t baudrate,
           const char* referee_chassis_tp_name,
           const char* referee_launcher_tp_name,
-          const char* referee_sentry_tp_name,
+          const char* referee_robot_game_tp_name,
           LibXR::Thread::Priority thread_priority_uart =
               LibXR::Thread::Priority::LOW,
           CMD* cmd = nullptr)
@@ -1034,8 +1034,8 @@ class Referee : public LibXR::Application {
                            nullptr, true),
         launcherpack_topic_(referee_launcher_tp_name, sizeof(LauncherPack),
                             nullptr, true),
-        sentrypack_topic_(referee_sentry_tp_name, sizeof(SentryPack), nullptr,
-                          true) {
+        robot_game_referee_topic_(referee_robot_game_tp_name,
+                                  sizeof(RobotGameRefereePack), nullptr, true) {
     UNUSED(hw);
     UNUSED(app);
     uart_->SetConfig({baudrate, LibXR::UART::Parity::NO_PARITY, 8, 1});
@@ -1776,9 +1776,10 @@ class Referee : public LibXR::Application {
     this->lp_.launcher_id1_17_heat =
         this->data_.power_heat.launcher_id1_17_heat;
     this->launcherpack_topic_.Publish(this->lp_);
-    this->sp_.rs = this->data_.robot_status;
-    this->sp_.gs = this->data_.game_status;
-    this->sentrypack_topic_.Publish(this->sp_);
+    this->robot_game_referee_pack_.robot_status = this->data_.robot_status;
+    this->robot_game_referee_pack_.game_status = this->data_.game_status;
+    this->robot_game_referee_pack_.launcher_data = this->data_.launcher_data;
+    this->robot_game_referee_topic_.Publish(this->robot_game_referee_pack_);
   }
 
   void OnMonitor() override {}
@@ -1805,8 +1806,8 @@ class Referee : public LibXR::Application {
   ChassisPack cp_; /* 发给底盘的数据包缓冲 */
   LibXR::Topic launcherpack_topic_;
   LauncherPack lp_; /* 发给发射的数据包缓冲 */
-  LibXR::Topic sentrypack_topic_;
-  SentryPack sp_;   /* 发给哨兵的数据包缓冲 */
+  LibXR::Topic robot_game_referee_topic_;
+  RobotGameRefereePack robot_game_referee_pack_; /* 裁判系统摘要包缓冲 */
   bool last_parse_; /* 上一次解包是否成功 */
 
   /* 线程相关 */
