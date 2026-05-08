@@ -984,8 +984,9 @@ class Referee : public LibXR::Application {
    */
   struct [[gnu::packed]] LauncherPack {
     RobotStatus rs; /* 热量上限和冷却速率 */
-    // PowerHeat ph;
-    uint16_t launcher_id1_17_heat; /* 第1个17mm发射机构的射击热量 */
+    RobotBuff rb; /* 冷却增益 */
+    LauncherData ld;  /* 射速 */
+    DartClient dc;  /* 飞镖发射 */
   };
 
 
@@ -1130,7 +1131,7 @@ class Referee : public LibXR::Application {
   void BindCMD(CMD& cmd) { cmd_ = &cmd; }
 
   LibXR::ErrorCode SendFrame(CommandID cmd_id, const void* payload,
-                             uint16_t PAYLOAD_LEN) {
+                      uint16_t PAYLOAD_LEN) {
     constexpr size_t HEADER_SIZE = sizeof(Header);
     constexpr size_t CMD_ID_SIZE = sizeof(uint16_t);
     constexpr size_t FRAME_TAIL_SIZE = sizeof(uint16_t);
@@ -1177,8 +1178,7 @@ class Referee : public LibXR::Application {
 
   template <typename PayloadType>
   LibXR::ErrorCode SendStudentCmd(CMDID data_cmd_id, uint16_t sender_id,
-                                  uint16_t receiver_id,
-                                  const PayloadType& payload) {
+                           uint16_t receiver_id, const PayloadType& payload) {
     struct [[gnu::packed]] {
       uint16_t data_cmd_id;
       uint16_t sender_id;
@@ -1327,37 +1327,37 @@ class Referee : public LibXR::Application {
   }
 
   LibXR::ErrorCode SendUILayerDelete(uint16_t sender_id, uint16_t receiver_id,
-                                     const UILayerDelete& payload) {
+                              const UILayerDelete& payload) {
     return SendStudentCmd(CMDID::REF_STDNT_CMD_ID_UI_DEL, sender_id,
                           receiver_id, payload);
   }
 
   LibXR::ErrorCode SendUIFigure(uint16_t sender_id, uint16_t receiver_id,
-                                const UIFigure& payload) {
+                         const UIFigure& payload) {
     return SendStudentCmd(CMDID::REF_STDNT_CMD_ID_UI_DRAW1, sender_id,
                           receiver_id, payload);
   }
 
   LibXR::ErrorCode SendUIFigure2(uint16_t sender_id, uint16_t receiver_id,
-                                 const UIFigure2& payload) {
+                          const UIFigure2& payload) {
     return SendStudentCmd(CMDID::REF_STDNT_CMD_ID_UI_DRAW2, sender_id,
                           receiver_id, payload);
   }
 
   LibXR::ErrorCode SendUIFigure5(uint16_t sender_id, uint16_t receiver_id,
-                                 const UIFigure5& payload) {
+                          const UIFigure5& payload) {
     return SendStudentCmd(CMDID::REF_STDNT_CMD_ID_UI_DRAW5, sender_id,
                           receiver_id, payload);
   }
 
   LibXR::ErrorCode SendUIFigure7(uint16_t sender_id, uint16_t receiver_id,
-                                 const UIFigure7& payload) {
+                          const UIFigure7& payload) {
     return SendStudentCmd(CMDID::REF_STDNT_CMD_ID_UI_DRAW7, sender_id,
                           receiver_id, payload);
   }
 
   LibXR::ErrorCode SendUICharacter(uint16_t sender_id, uint16_t receiver_id,
-                                   const UICharacter& payload) {
+                            const UICharacter& payload) {
     return SendStudentCmd(CMDID::REF_STDNT_CMD_ID_UI_STR, sender_id,
                           receiver_id, payload);
   }
@@ -1414,8 +1414,7 @@ class Referee : public LibXR::Application {
   void FindHeader() {
     while (1) {
       /* 防编译器warning */
-      if (this->uart_->Read({&this->byte_, 1}, this->op_) ==
-          LibXR::ErrorCode::OK) {
+      if (this->uart_->Read({&this->byte_, 1}, this->op_) == LibXR::ErrorCode::OK) {
         if (this->byte_ != 0xA5) {
           continue;
         }
@@ -1852,12 +1851,11 @@ class Referee : public LibXR::Application {
     this->cp_.rs = this->data_.robot_status;
     this->cp_.power_buffer = this->data_.power_heat.chassis_pwr_buff;
     this->chassispack_topic_.Publish(this->cp_);
-    this->lp_.rs.shooter_cooling_value =
-        this->data_.robot_status.shooter_cooling_value;
-    this->lp_.rs.shooter_heat_limit =
-        this->data_.robot_status.shooter_heat_limit;
-    this->lp_.launcher_id1_17_heat =
-        this->data_.power_heat.launcher_id1_17_heat;
+    this->lp_.rs = this->data_.robot_status;
+    this->lp_.rb = this->data_.robot_buff;
+    this->lp_.ld = this->data_.launcher_data;
+    this->lp_.dc = this->data_.dart_client;
+
     this->launcherpack_topic_.Publish(this->lp_);
     this->sp_.rs = this->data_.robot_status;
     this->sp_.gs = this->data_.game_status;
