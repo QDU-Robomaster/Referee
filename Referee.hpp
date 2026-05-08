@@ -1000,11 +1000,6 @@ class Referee : public LibXR::Application {
     uint16_t power_buffer; /* 底盘缓冲能量，单位 J */
   };
 
-  /**
-   * @brief 哨兵相关包定义及发包函数封装
-   *
-   */
-  namespace Sentry{
 
     /**
      * @brief 哨兵姿态
@@ -1014,7 +1009,7 @@ class Referee : public LibXR::Application {
       ATTACH = 0,
       DEFEND = 1,
       GUERRILLA = 2,
-    }
+    };
 
   /**
    * @brief 哨兵需要的包
@@ -1022,8 +1017,8 @@ class Referee : public LibXR::Application {
    */
   struct [[gnu::packed]] SentryPack {
     /* TODO: 待更新 */
-    RobotStatus rs; /* 热量上限和冷却速率 */
-    GameStatus gs;  /*比赛信息*/
+    Referee::RobotStatus rs; /* 热量上限和冷却速率 */
+    Referee::GameStatus gs;  /*比赛信息*/
   };
 
   /**
@@ -1041,7 +1036,7 @@ class Referee : public LibXR::Application {
    * @param revival 是否整活
    */
   void SetConfirmRevival(bool revival){
-    this->data_.confirm_resurrection = revival;
+    this->data_.sentry_dec_data.confirm_resurrection = revival;
   }
 
   /**
@@ -1077,7 +1072,7 @@ class Referee : public LibXR::Application {
    * @param state 要切换的状态
    */
   void SetSwitchMode(State state){
-    this->data_.sentry_dec_data.current_state = state;
+    this->data_.sentry_dec_data.current_state = static_cast<uint32_t>(state);
   }
 
   /**
@@ -1087,8 +1082,8 @@ class Referee : public LibXR::Application {
    */
   void SendSentryPack(){
     // SendFrame<SentryDecisionData>(, this->data_.sentry_dec_data);
-    SendStudentCmd(0x0120, GetRobotID(), 0x8080, this->data_.sentry_dec_data);
-  }
+    SendStudentCmd(CMDID::REF_STDNT_CMD_ID_SENTRY_CMD, GetRobotID(), 0x8080,
+                   this->data_.sentry_dec_data);
   }
 
   /**
@@ -1638,8 +1633,7 @@ class Referee : public LibXR::Application {
         if (PAYLOAD_LEN < 6) {
           return false;
         }
-        LibXR::Memory::FastSet(
-            this->data_.robot_ineraction_data.user_data, 0,
+        memset(this->data_.robot_ineraction_data.user_data, 0,
             sizeof(this->data_.robot_ineraction_data.user_data));
         LibXR::Memory::FastCopy(&this->data_.robot_ineraction_data, payload, 6);
         const size_t USER_DATA_LEN = std::min<size_t>(
