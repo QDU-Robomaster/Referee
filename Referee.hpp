@@ -984,19 +984,12 @@ class Referee : public LibXR::Application {
    */
   struct [[gnu::packed]] LauncherPack {
     RobotStatus rs; /* 热量上限和冷却速率 */
-    // PowerHeat ph;
-    uint16_t launcher_id1_17_heat; /* 第1个17mm发射机构的射击热量 */
+    RobotBuff rb; /* 冷却增益 */
+    LauncherData ld;  /* 射速 */
+    DartClient dc;  /* 飞镖发射 */
   };
 
-  /**
-   * @brief 机器人、比赛和发射相关的裁判系统摘要
-   *
-   */
-  struct [[gnu::packed]] RobotGameRefereePack {
-    RobotStatus robot_status;   /* 机器人状态 */
-    GameStatus game_status;     /* 比赛信息 */
-    LauncherData launcher_data; /* 实时射击数据 */
-  };
+
 
   /**
    * @brief 底盘模块需要的包
@@ -1006,6 +999,102 @@ class Referee : public LibXR::Application {
     RobotStatus rs;        /* 等级和功率上限 */
     uint16_t power_buffer; /* 底盘缓冲能量，单位 J */
   };
+
+
+    /**
+     * @brief 哨兵姿态
+     *
+     */
+  enum class State : uint8_t{
+      ATTACH = 0,
+      DEFEND = 1,
+      GUERRILLA = 2,
+    };
+
+   /**
+   * @brief 机器人、比赛和发射相关的裁判系统摘要
+   *
+   */
+  struct [[gnu::packed]] RobotGameRefereePack {
+    RobotStatus robot_status;   /* 机器人状态 */
+    GameStatus game_status;     /* 比赛信息 */
+    LauncherData launcher_data; /* 实时射击数据 */
+  };
+  
+  /**
+  * @brief 哨兵包定义
+  *
+  */
+  struct [[gnu::packed]] SentryPack {
+    /* TODO: 待更新 */
+    Referee::RobotStatus rs; /* 热量上限和冷却速率 */
+    Referee::GameStatus gs;  /*比赛信息*/
+  };
+  
+  /**
+   * @brief 设置哨兵将要兑换的发弹量值
+   *
+   * @param need_bullet 需要兑换的发弹量
+   */
+  void SetNeedBullet(uint8_t need_bullet){
+    this->data_.sentry_dec_data.buy_bullet_num += need_bullet;
+  }
+
+  /**
+   * @brief 哨兵机器人是否确认复活
+   *
+   * @param revival 是否整活
+   */
+  void SetConfirmRevival(bool revival){
+    this->data_.sentry_dec_data.confirm_resurrection = revival;
+  }
+
+  /**
+   * @brief 哨兵远程兑换发弹量
+   *
+   * @param bullet_number 要买的发弹量
+   */
+  void SetBulletRemote(uint8_t bullet_number){
+    this->data_.sentry_dec_data.remote_buy_bullet_times += 1;
+    this->data_.sentry_dec_data.buy_bullet_num += bullet_number;
+  }
+
+  /**
+   * @brief 哨兵远程兑换血量
+   *
+   */
+  void SetHPRemote(){
+    this->data_.sentry_dec_data.romote_buy_hp_times += 1;
+  }
+
+  /**
+   * @brief 远程买活
+   *
+   * @param 是否整活
+   */
+  void SetRevivalRemote(bool revival){
+    this->data_.sentry_dec_data.buy_resurrection = revival;
+  }
+
+  /**
+   * @brief 哨兵修改姿态
+   *
+   * @param state 要切换的状态
+   */
+  void SetSwitchMode(State state){
+    this->data_.sentry_dec_data.current_state = static_cast<uint32_t>(state);
+  }
+
+  /**
+   * @brief 发送哨兵包
+   *
+   * @note 在定时器线程里，按裁判系统带宽要求调用这个函数
+   */
+  void SendSentryPack(){
+    // SendFrame<SentryDecisionData>(, this->data_.sentry_dec_data);
+    SendStudentCmd(CMDID::REF_STDNT_CMD_ID_SENTRY_CMD, GetRobotID(), 0x8080,
+                   this->data_.sentry_dec_data);
+  }
 
   /**
    * @brief Construct a new Referee object
@@ -1026,7 +1115,7 @@ class Referee : public LibXR::Application {
           CMD* cmd = nullptr)
       : uart_(hw.Find<LibXR::UART>(uart)),
         sem_(0),
-        op_(sem_, 5000), /* TODO:测延时 */
+        op_(sem_, 5000),
         sem_tx_(),
         tx_op_(sem_tx_, 5000),
         cmd_(cmd),
@@ -1047,7 +1136,7 @@ class Referee : public LibXR::Application {
   void BindCMD(CMD& cmd) { cmd_ = &cmd; }
 
   LibXR::ErrorCode SendFrame(CommandID cmd_id, const void* payload,
-                             uint16_t PAYLOAD_LEN) {
+                      uint16_t PAYLOAD_LEN) {
     constexpr size_t HEADER_SIZE = sizeof(Header);
     constexpr size_t CMD_ID_SIZE = sizeof(uint16_t);
     constexpr size_t FRAME_TAIL_SIZE = sizeof(uint16_t);
@@ -1094,8 +1183,7 @@ class Referee : public LibXR::Application {
 
   template <typename PayloadType>
   LibXR::ErrorCode SendStudentCmd(CMDID data_cmd_id, uint16_t sender_id,
-                                  uint16_t receiver_id,
-                                  const PayloadType& payload) {
+                           uint16_t receiver_id, const PayloadType& payload) {
     struct [[gnu::packed]] {
       uint16_t data_cmd_id;
       uint16_t sender_id;
@@ -1244,37 +1332,37 @@ class Referee : public LibXR::Application {
   }
 
   LibXR::ErrorCode SendUILayerDelete(uint16_t sender_id, uint16_t receiver_id,
-                                     const UILayerDelete& payload) {
+                              const UILayerDelete& payload) {
     return SendStudentCmd(CMDID::REF_STDNT_CMD_ID_UI_DEL, sender_id,
                           receiver_id, payload);
   }
 
   LibXR::ErrorCode SendUIFigure(uint16_t sender_id, uint16_t receiver_id,
-                                const UIFigure& payload) {
+                         const UIFigure& payload) {
     return SendStudentCmd(CMDID::REF_STDNT_CMD_ID_UI_DRAW1, sender_id,
                           receiver_id, payload);
   }
 
   LibXR::ErrorCode SendUIFigure2(uint16_t sender_id, uint16_t receiver_id,
-                                 const UIFigure2& payload) {
+                          const UIFigure2& payload) {
     return SendStudentCmd(CMDID::REF_STDNT_CMD_ID_UI_DRAW2, sender_id,
                           receiver_id, payload);
   }
 
   LibXR::ErrorCode SendUIFigure5(uint16_t sender_id, uint16_t receiver_id,
-                                 const UIFigure5& payload) {
+                          const UIFigure5& payload) {
     return SendStudentCmd(CMDID::REF_STDNT_CMD_ID_UI_DRAW5, sender_id,
                           receiver_id, payload);
   }
 
   LibXR::ErrorCode SendUIFigure7(uint16_t sender_id, uint16_t receiver_id,
-                                 const UIFigure7& payload) {
+                          const UIFigure7& payload) {
     return SendStudentCmd(CMDID::REF_STDNT_CMD_ID_UI_DRAW7, sender_id,
                           receiver_id, payload);
   }
 
   LibXR::ErrorCode SendUICharacter(uint16_t sender_id, uint16_t receiver_id,
-                                   const UICharacter& payload) {
+                            const UICharacter& payload) {
     return SendStudentCmd(CMDID::REF_STDNT_CMD_ID_UI_STR, sender_id,
                           receiver_id, payload);
   }
@@ -1331,8 +1419,7 @@ class Referee : public LibXR::Application {
   void FindHeader() {
     while (1) {
       /* 防编译器warning */
-      if (this->uart_->Read({&this->byte_, 1}, this->op_) ==
-          LibXR::ErrorCode::OK) {
+      if (this->uart_->Read({&this->byte_, 1}, this->op_) == LibXR::ErrorCode::OK) {
         if (this->byte_ != 0xA5) {
           continue;
         }
@@ -1556,8 +1643,7 @@ class Referee : public LibXR::Application {
         if (PAYLOAD_LEN < 6) {
           return false;
         }
-        LibXR::Memory::FastSet(
-            this->data_.robot_ineraction_data.user_data, 0,
+        memset(this->data_.robot_ineraction_data.user_data, 0,
             sizeof(this->data_.robot_ineraction_data.user_data));
         LibXR::Memory::FastCopy(&this->data_.robot_ineraction_data, payload, 6);
         const size_t USER_DATA_LEN = std::min<size_t>(
@@ -1769,12 +1855,11 @@ class Referee : public LibXR::Application {
     this->cp_.rs = this->data_.robot_status;
     this->cp_.power_buffer = this->data_.power_heat.chassis_pwr_buff;
     this->chassispack_topic_.Publish(this->cp_);
-    this->lp_.rs.shooter_cooling_value =
-        this->data_.robot_status.shooter_cooling_value;
-    this->lp_.rs.shooter_heat_limit =
-        this->data_.robot_status.shooter_heat_limit;
-    this->lp_.launcher_id1_17_heat =
-        this->data_.power_heat.launcher_id1_17_heat;
+    this->lp_.rs = this->data_.robot_status;
+    this->lp_.rb = this->data_.robot_buff;
+    this->lp_.ld = this->data_.launcher_data;
+    this->lp_.dc = this->data_.dart_client;
+
     this->launcherpack_topic_.Publish(this->lp_);
     this->robot_game_referee_pack_.robot_status = this->data_.robot_status;
     this->robot_game_referee_pack_.game_status = this->data_.game_status;
