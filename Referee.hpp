@@ -988,6 +988,33 @@ class Referee : public LibXR::Application {
     uint16_t launcher_id1_17_heat; /* 第1个17mm发射机构的射击热量 */
   };
 
+
+
+  /**
+   * @brief 底盘模块需要的包
+   *
+   */
+  struct [[gnu::packed]] ChassisPack {
+    RobotStatus rs;        /* 等级和功率上限 */
+    uint16_t power_buffer; /* 底盘缓冲能量，单位 J */
+  };
+
+  /**
+   * @brief 哨兵相关包定义及发包函数封装
+   *
+   */
+  namespace Sentry{
+
+    /**
+     * @brief 哨兵姿态
+     *
+     */
+  enum class State : uint8_t{
+      ATTACH = 0,
+      DEFEND = 1,
+      GUERRILLA = 2,
+    }
+
   /**
    * @brief 哨兵需要的包
    *
@@ -999,13 +1026,69 @@ class Referee : public LibXR::Application {
   };
 
   /**
-   * @brief 底盘模块需要的包
+   * @brief 设置哨兵将要兑换的发弹量值
+   *
+   * @param need_bullet 需要兑换的发弹量
+   */
+  void SetNeedBullet(uint8_t need_bullet){
+    this->data_.sentry_dec_data.buy_bullet_num += need_bullet;
+  }
+
+  /**
+   * @brief 哨兵机器人是否确认复活
+   *
+   * @param revival 是否整活
+   */
+  void SetConfirmRevival(bool revival){
+    this->data_.confirm_resurrection = revival;
+  }
+
+  /**
+   * @brief 哨兵远程兑换发弹量
+   *
+   * @param bullet_number 要买的发弹量
+   */
+  void SetBulletRemote(uint8_t bullet_number){
+    this->data_.sentry_dec_data.remote_buy_bullet_times += 1;
+    this->data_.sentry_dec_data.buy_bullet_num += bullet_number;
+  }
+
+  /**
+   * @brief 哨兵远程兑换血量
    *
    */
-  struct [[gnu::packed]] ChassisPack {
-    RobotStatus rs;        /* 等级和功率上限 */
-    uint16_t power_buffer; /* 底盘缓冲能量，单位 J */
-  };
+  void SetHPRemote(){
+    this->data_.sentry_dec_data.romote_buy_hp_times += 1;
+  }
+
+  /**
+   * @brief 远程买活
+   *
+   * @param 是否整活
+   */
+  void SetRevivalRemote(bool revival){
+    this->data_.sentry_dec_data.buy_resurrection = revival;
+  }
+
+  /**
+   * @brief 哨兵修改姿态
+   *
+   * @param state 要切换的状态
+   */
+  void SetSwitchMode(State state){
+    this->data_.sentry_dec_data.current_state = state;
+  }
+
+  /**
+   * @brief 发送哨兵包
+   *
+   * @note 在定时器线程里，按裁判系统带宽要求调用这个函数
+   */
+  void SendSentryPack(){
+    // SendFrame<SentryDecisionData>(, this->data_.sentry_dec_data);
+    SendStudentCmd(0x0120, GetRobotID(), 0x8080, this->data_.sentry_dec_data);
+  }
+  }
 
   /**
    * @brief Construct a new Referee object
@@ -1026,7 +1109,7 @@ class Referee : public LibXR::Application {
           CMD* cmd = nullptr)
       : uart_(hw.Find<LibXR::UART>(uart)),
         sem_(0),
-        op_(sem_, 5000), /* TODO:测延时 */
+        op_(sem_, 5000),
         sem_tx_(),
         tx_op_(sem_tx_, 5000),
         cmd_(cmd),
