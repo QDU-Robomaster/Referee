@@ -983,13 +983,11 @@ class Referee : public LibXR::Application {
    *
    */
   struct [[gnu::packed]] LauncherPack {
-    RobotStatus rs; /* 热量上限和冷却速率 */
-    RobotBuff rb; /* 冷却增益 */
-    LauncherData ld;  /* 射速 */
-    DartClient dc;  /* 飞镖发射 */
+    RobotStatus rs;  /* 热量上限和冷却速率 */
+    RobotBuff rb;    /* 冷却增益 */
+    LauncherData ld; /* 射速 */
+    DartClient dc;   /* 飞镖发射 */
   };
-
-
 
   /**
    * @brief 底盘模块需要的包
@@ -1000,18 +998,17 @@ class Referee : public LibXR::Application {
     uint16_t power_buffer; /* 底盘缓冲能量，单位 J */
   };
 
+  /**
+   * @brief 哨兵姿态
+   *
+   */
+  enum class State : uint8_t {
+    ATTACH = 0,
+    DEFEND = 1,
+    GUERRILLA = 2,
+  };
 
-    /**
-     * @brief 哨兵姿态
-     *
-     */
-  enum class State : uint8_t{
-      ATTACH = 0,
-      DEFEND = 1,
-      GUERRILLA = 2,
-    };
-
-   /**
+  /**
    * @brief 机器人、比赛和发射相关的裁判系统摘要
    *
    */
@@ -1020,23 +1017,23 @@ class Referee : public LibXR::Application {
     GameStatus game_status;     /* 比赛信息 */
     LauncherData launcher_data; /* 实时射击数据 */
   };
-  
+
   /**
-  * @brief 哨兵包定义
-  *
-  */
+   * @brief 哨兵包定义
+   *
+   */
   struct [[gnu::packed]] SentryPack {
     /* TODO: 待更新 */
     Referee::RobotStatus rs; /* 热量上限和冷却速率 */
     Referee::GameStatus gs;  /*比赛信息*/
   };
-  
+
   /**
    * @brief 设置哨兵将要兑换的发弹量值
    *
    * @param need_bullet 需要兑换的发弹量
    */
-  void SetNeedBullet(uint8_t need_bullet){
+  void SetNeedBullet(uint8_t need_bullet) {
     this->data_.sentry_dec_data.buy_bullet_num += need_bullet;
   }
 
@@ -1045,7 +1042,7 @@ class Referee : public LibXR::Application {
    *
    * @param revival 是否整活
    */
-  void SetConfirmRevival(bool revival){
+  void SetConfirmRevival(bool revival) {
     this->data_.sentry_dec_data.confirm_resurrection = revival;
   }
 
@@ -1054,7 +1051,7 @@ class Referee : public LibXR::Application {
    *
    * @param bullet_number 要买的发弹量
    */
-  void SetBulletRemote(uint8_t bullet_number){
+  void SetBulletRemote(uint8_t bullet_number) {
     this->data_.sentry_dec_data.remote_buy_bullet_times += 1;
     this->data_.sentry_dec_data.buy_bullet_num += bullet_number;
   }
@@ -1063,16 +1060,14 @@ class Referee : public LibXR::Application {
    * @brief 哨兵远程兑换血量
    *
    */
-  void SetHPRemote(){
-    this->data_.sentry_dec_data.romote_buy_hp_times += 1;
-  }
+  void SetHPRemote() { this->data_.sentry_dec_data.romote_buy_hp_times += 1; }
 
   /**
    * @brief 远程买活
    *
    * @param 是否整活
    */
-  void SetRevivalRemote(bool revival){
+  void SetRevivalRemote(bool revival) {
     this->data_.sentry_dec_data.buy_resurrection = revival;
   }
 
@@ -1081,7 +1076,7 @@ class Referee : public LibXR::Application {
    *
    * @param state 要切换的状态
    */
-  void SetSwitchMode(State state){
+  void SetSwitchMode(State state) {
     this->data_.sentry_dec_data.current_state = static_cast<uint32_t>(state);
   }
 
@@ -1090,7 +1085,7 @@ class Referee : public LibXR::Application {
    *
    * @note 在定时器线程里，按裁判系统带宽要求调用这个函数
    */
-  void SendSentryPack(){
+  void SendSentryPack() {
     // SendFrame<SentryDecisionData>(, this->data_.sentry_dec_data);
     SendStudentCmd(CMDID::REF_STDNT_CMD_ID_SENTRY_CMD, GetRobotID(), 0x8080,
                    this->data_.sentry_dec_data);
@@ -1130,13 +1125,13 @@ class Referee : public LibXR::Application {
     uart_->SetConfig({baudrate, LibXR::UART::Parity::NO_PARITY, 8, 1});
 
     this->thread_.Create(this, ThreadFunc, "Referee", task_stack_depth_uart,
-                         LibXR::Thread::Priority::LOW);
+                         thread_priority_uart);
   }
 
   void BindCMD(CMD& cmd) { cmd_ = &cmd; }
 
   LibXR::ErrorCode SendFrame(CommandID cmd_id, const void* payload,
-                      uint16_t PAYLOAD_LEN) {
+                             uint16_t PAYLOAD_LEN) {
     constexpr size_t HEADER_SIZE = sizeof(Header);
     constexpr size_t CMD_ID_SIZE = sizeof(uint16_t);
     constexpr size_t FRAME_TAIL_SIZE = sizeof(uint16_t);
@@ -1183,7 +1178,8 @@ class Referee : public LibXR::Application {
 
   template <typename PayloadType>
   LibXR::ErrorCode SendStudentCmd(CMDID data_cmd_id, uint16_t sender_id,
-                           uint16_t receiver_id, const PayloadType& payload) {
+                                  uint16_t receiver_id,
+                                  const PayloadType& payload) {
     struct [[gnu::packed]] {
       uint16_t data_cmd_id;
       uint16_t sender_id;
@@ -1332,37 +1328,37 @@ class Referee : public LibXR::Application {
   }
 
   LibXR::ErrorCode SendUILayerDelete(uint16_t sender_id, uint16_t receiver_id,
-                              const UILayerDelete& payload) {
+                                     const UILayerDelete& payload) {
     return SendStudentCmd(CMDID::REF_STDNT_CMD_ID_UI_DEL, sender_id,
                           receiver_id, payload);
   }
 
   LibXR::ErrorCode SendUIFigure(uint16_t sender_id, uint16_t receiver_id,
-                         const UIFigure& payload) {
+                                const UIFigure& payload) {
     return SendStudentCmd(CMDID::REF_STDNT_CMD_ID_UI_DRAW1, sender_id,
                           receiver_id, payload);
   }
 
   LibXR::ErrorCode SendUIFigure2(uint16_t sender_id, uint16_t receiver_id,
-                          const UIFigure2& payload) {
+                                 const UIFigure2& payload) {
     return SendStudentCmd(CMDID::REF_STDNT_CMD_ID_UI_DRAW2, sender_id,
                           receiver_id, payload);
   }
 
   LibXR::ErrorCode SendUIFigure5(uint16_t sender_id, uint16_t receiver_id,
-                          const UIFigure5& payload) {
+                                 const UIFigure5& payload) {
     return SendStudentCmd(CMDID::REF_STDNT_CMD_ID_UI_DRAW5, sender_id,
                           receiver_id, payload);
   }
 
   LibXR::ErrorCode SendUIFigure7(uint16_t sender_id, uint16_t receiver_id,
-                          const UIFigure7& payload) {
+                                 const UIFigure7& payload) {
     return SendStudentCmd(CMDID::REF_STDNT_CMD_ID_UI_DRAW7, sender_id,
                           receiver_id, payload);
   }
 
   LibXR::ErrorCode SendUICharacter(uint16_t sender_id, uint16_t receiver_id,
-                            const UICharacter& payload) {
+                                   const UICharacter& payload) {
     return SendStudentCmd(CMDID::REF_STDNT_CMD_ID_UI_STR, sender_id,
                           receiver_id, payload);
   }
@@ -1403,40 +1399,130 @@ class Referee : public LibXR::Application {
    */
   static void ThreadFunc(Referee* ref) {
     ref->uart_->read_port_->Reset();
-    while (1) {
-      ref->FindHeader();
-      ref->last_parse_ = ref->ParseData();
-      ref->Publish();
-      // ref->uart_->Write(0b01010101, ref->op_);
-      LibXR::Thread::Sleep(10);
+    while (true) {
+      if (ref->uart_->Read({nullptr, 0}, ref->op_) != LibXR::ErrorCode::OK) {
+        ref->data_.status = Status::OFFLINE;
+        continue;
+      }
+
+      ref->DrainRxPort();
     }
   }
 
   /**
-   * @brief 寻找包头的函数，含阻塞
+   * @brief 抽空串口接收端口，按流式协议解析裁判系统包
    *
    */
-  void FindHeader() {
-    while (1) {
-      /* 防编译器warning */
-      if (this->uart_->Read({&this->byte_, 1}, this->op_) == LibXR::ErrorCode::OK) {
-        if (this->byte_ != 0xA5) {
-          continue;
-        }
-        this->pack_.header_.sof = this->byte_;
-        this->uart_->Read({reinterpret_cast<uint8_t*>(&this->pack_.header_) + 1,
-                           sizeof(Header) - 1},
-                          this->op_);
+  void DrainRxPort() {
+    LibXR::ReadOperation read_op;
 
-        if (LibXR::CRC8::Verify(
-                reinterpret_cast<uint8_t*>(&this->pack_.header_),
-                sizeof(Header))) {
-          this->data_.status = Status::RUNNING;
-          break;
-        }
-      } else {
-        this->data_.status = Status::OFFLINE;
+    while (this->uart_->read_port_->Size() > 0) {
+      const size_t READ_SIZE =
+          std::min(this->uart_->read_port_->Size(), sizeof(this->rx_buf_));
+
+      if (this->uart_->Read({this->rx_buf_, READ_SIZE}, read_op) !=
+          LibXR::ErrorCode::OK) {
+        return;
       }
+
+      this->AppendRxData(this->rx_buf_, READ_SIZE);
+      this->ParseBufferedData();
+    }
+  }
+
+  /**
+   * @brief 追加串口流数据，缓存溢出时保留最新数据用于重新同步
+   *
+   */
+  void AppendRxData(const uint8_t* data, size_t size) {
+    if (size == 0) {
+      return;
+    }
+
+    if (size >= sizeof(this->stream_buf_)) {
+      data += size - sizeof(this->stream_buf_);
+      size = sizeof(this->stream_buf_);
+      this->stream_buf_size_ = 0;
+    }
+
+    const size_t FREE_SIZE = sizeof(this->stream_buf_) - this->stream_buf_size_;
+    if (size > FREE_SIZE) {
+      this->DropRxData(size - FREE_SIZE);
+    }
+
+    LibXR::Memory::FastCopy(&this->stream_buf_[this->stream_buf_size_], data,
+                            size);
+    this->stream_buf_size_ += size;
+  }
+
+  /**
+   * @brief 丢弃流缓存前部数据
+   *
+   */
+  void DropRxData(size_t size) {
+    if (size >= this->stream_buf_size_) {
+      this->stream_buf_size_ = 0;
+      return;
+    }
+
+    this->stream_buf_size_ -= size;
+    std::memmove(this->stream_buf_, &this->stream_buf_[size],
+                 this->stream_buf_size_);
+  }
+
+  /**
+   * @brief 从流缓存中解析所有完整裁判系统包
+   *
+   */
+  void ParseBufferedData() {
+    while (this->stream_buf_size_ >=
+           sizeof(Header) + sizeof(uint16_t) + sizeof(uint16_t)) {
+      size_t sof_offset = 0;
+      while (sof_offset < this->stream_buf_size_ &&
+             this->stream_buf_[sof_offset] != 0xA5) {
+        ++sof_offset;
+      }
+
+      if (sof_offset == this->stream_buf_size_) {
+        this->stream_buf_size_ = 0;
+        return;
+      }
+
+      if (sof_offset > 0) {
+        this->DropRxData(sof_offset);
+      }
+
+      if (this->stream_buf_size_ < sizeof(Header)) {
+        return;
+      }
+
+      if (!LibXR::CRC8::Verify(this->stream_buf_, sizeof(Header))) {
+        this->DropRxData(1);
+        continue;
+      }
+
+      Header header{};
+      LibXR::Memory::FastCopy(&header, this->stream_buf_, sizeof(Header));
+
+      const size_t BYTES_AFTER_HEADER =
+          sizeof(uint16_t) + header.data_length + sizeof(uint16_t);
+      const size_t FRAME_SIZE = sizeof(Header) + BYTES_AFTER_HEADER;
+      if (BYTES_AFTER_HEADER > sizeof(this->pack_.buf_)) {
+        this->DropRxData(1);
+        continue;
+      }
+
+      if (this->stream_buf_size_ < FRAME_SIZE) {
+        return;
+      }
+
+      this->pack_.header_ = header;
+      LibXR::Memory::FastCopy(this->pack_.buf_,
+                              &this->stream_buf_[sizeof(Header)],
+                              BYTES_AFTER_HEADER);
+      this->last_parse_ = this->ParseData();
+      this->Publish();
+      this->DropRxData(FRAME_SIZE);
     }
   }
 
@@ -1452,11 +1538,6 @@ class Referee : public LibXR::Application {
         sizeof(uint16_t) + PAYLOAD_LEN + sizeof(uint16_t);
 
     if (BYTES_AFTER_HEADER > sizeof(this->pack_.buf_)) {
-      return false;
-    }
-
-    if (this->uart_->Read({this->pack_.buf_, BYTES_AFTER_HEADER}, this->op_) !=
-        LibXR::ErrorCode::OK) {
       return false;
     }
 
@@ -1644,7 +1725,7 @@ class Referee : public LibXR::Application {
           return false;
         }
         memset(this->data_.robot_ineraction_data.user_data, 0,
-            sizeof(this->data_.robot_ineraction_data.user_data));
+               sizeof(this->data_.robot_ineraction_data.user_data));
         LibXR::Memory::FastCopy(&this->data_.robot_ineraction_data, payload, 6);
         const size_t USER_DATA_LEN = std::min<size_t>(
             PAYLOAD_LEN - 6,
@@ -1879,7 +1960,9 @@ class Referee : public LibXR::Application {
   CMD* cmd_;
   uint8_t tx_buf_[256]{};
   uint8_t tx_seq_ = 0;
-  uint8_t byte_ = 0;
+  uint8_t rx_buf_[512]{};
+  uint8_t stream_buf_[1024]{};
+  size_t stream_buf_size_ = 0;
 
   /* 协议,数据流 */
   struct [[gnu::packed]] {
@@ -1893,7 +1976,7 @@ class Referee : public LibXR::Application {
   LauncherPack lp_; /* 发给发射的数据包缓冲 */
   LibXR::Topic robot_game_referee_topic_;
   RobotGameRefereePack robot_game_referee_pack_; /* 裁判系统摘要包缓冲 */
-  bool last_parse_; /* 上一次解包是否成功 */
+  bool last_parse_;                              /* 上一次解包是否成功 */
 
   /* 线程相关 */
   uint64_t last_wake_up_; /* ms */
