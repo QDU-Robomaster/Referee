@@ -37,7 +37,7 @@ jobs:
 
           int main() {
               LibXR::PlatformInit();
-8              LibXR::HardwareContainer hw;
+              LibXR::HardwareContainer hw;
               XRobotMain(hw);
               return 0;
           }
