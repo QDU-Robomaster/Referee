@@ -1449,7 +1449,6 @@ class Referee : public LibXR::Application {
    *
    */
   static void ThreadFunc(Referee* ref) {
-    ref->uart_->read_port_->Reset();
     while (1) {
       ref->FindHeader();
       ref->last_parse_ = ref->ParseData();
