@@ -1153,14 +1153,14 @@ class Referee : public LibXR::Application {
         sem_tx_(),
         tx_op_(sem_tx_, 5000),
         cmd_(cmd),
-        chassispack_topic_(referee_chassis_tp_name, sizeof(ChassisPack),
-                           nullptr, true),
-        launcherpack_topic_(referee_launcher_tp_name, sizeof(LauncherPack),
-                            nullptr, true),
-        robot_game_referee_topic_(referee_robot_game_tp_name,
-                                  sizeof(RobotGameRefereePack), nullptr, true),
-        radar_pack_topic_(referee_radar_tp_name, sizeof(RadarPack), nullptr,
-                          true) {
+        chassispack_topic_(LibXR::Topic::CreateTopic<ChassisPack>(
+            referee_chassis_tp_name, nullptr, true)),
+        launcherpack_topic_(LibXR::Topic::CreateTopic<LauncherPack>(
+            referee_launcher_tp_name, nullptr, true)),
+        robot_game_referee_topic_(LibXR::Topic::CreateTopic<RobotGameRefereePack>(
+            referee_robot_game_tp_name, nullptr, true)),
+        radar_pack_topic_(LibXR::Topic::CreateTopic<RadarPack>(
+            referee_radar_tp_name, nullptr, true)) {
     UNUSED(hw);
     UNUSED(app);
     uart_->SetConfig({baudrate, LibXR::UART::Parity::NO_PARITY, 8, 1});
