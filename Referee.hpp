@@ -25,7 +25,8 @@ constructor_args:
 
   - thread_priority_uart: LibXR::Thread::Priority::LOW
 required_hardware: dma uart
-depends: []
+depends:
+  - qdu-future/CMD
 === END MANIFEST === */
 // clang-format on
 #include <algorithm>
