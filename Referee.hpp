@@ -11,6 +11,8 @@
 
 #pragma once
 
+#include <memory>
+
 // clang-format off
 /* === MODULE MANIFEST V2 ===
 module_description: RM_Referee_2025
@@ -1192,37 +1194,46 @@ class Referee
                           GetRobotID() + 2, payload);
   }
 
+  struct Param
+  {
+    uint32_t task_stack_depth_uart;
+    uint32_t baudrate;
+    const char* referee_chassis_tp_name;
+    const char* referee_launcher_tp_name;
+    const char* referee_robot_game_tp_name;
+    const char* referee_radar_tp_name;
+    LibXR::Thread::Priority thread_priority_uart;
+  };
+
   /**
    * @brief Construct a new Referee object
    *
-   * @param task_stack_depth_uart
-   * @param baudrate
+   * @param param Value configuration.
    */
-  Referee(LibXR::UART* external_uart, uint32_t task_stack_depth_uart, uint32_t baudrate,
-          const char* referee_chassis_tp_name, const char* referee_launcher_tp_name,
-          const char* referee_robot_game_tp_name, const char* referee_radar_tp_name,
-          LibXR::Thread::Priority thread_priority_uart = LibXR::Thread::Priority::LOW,
-          CMD* cmd = nullptr)
+  Referee(
+      LibXR::UART& uart,
+      CMD* cmd = nullptr,
+      const Param& param = {.task_stack_depth_uart = 2048, .baudrate = 115200, .referee_chassis_tp_name = "chassis_ref", .referee_launcher_tp_name = "launcher_ref", .referee_robot_game_tp_name = "robot_game_ref", .referee_radar_tp_name = "radar_ref", .thread_priority_uart = LibXR::Thread::Priority::LOW})
 
-      : uart_(external_uart),
+      : uart_(std::addressof(uart)),
         sem_(0),
         op_(sem_, 5000),
         sem_tx_(),
         tx_op_(sem_tx_, 5000),
         cmd_(cmd),
-        chassispack_topic_(LibXR::Topic::CreateTopic<ChassisPack>(referee_chassis_tp_name,
+        chassispack_topic_(LibXR::Topic::CreateTopic<ChassisPack>(param.referee_chassis_tp_name,
                                                                   nullptr, true)),
         launcherpack_topic_(LibXR::Topic::CreateTopic<LauncherPack>(
-            referee_launcher_tp_name, nullptr, true)),
+            param.referee_launcher_tp_name, nullptr, true)),
         robot_game_referee_topic_(LibXR::Topic::CreateTopic<RobotGameRefereePack>(
-            referee_robot_game_tp_name, nullptr, true)),
+            param.referee_robot_game_tp_name, nullptr, true)),
         radar_pack_topic_(
-            LibXR::Topic::CreateTopic<RadarPack>(referee_radar_tp_name, nullptr, true))
+            LibXR::Topic::CreateTopic<RadarPack>(param.referee_radar_tp_name, nullptr, true))
   {
-    uart_->SetConfig({baudrate, LibXR::UART::Parity::NO_PARITY, 8, 1});
+    uart_->SetConfig({param.baudrate, LibXR::UART::Parity::NO_PARITY, 8, 1});
 
-    this->thread_.Create(this, ThreadFunc, "Referee", task_stack_depth_uart,
-                         LibXR::Thread::Priority::MEDIUM);
+    this->thread_.Create(this, ThreadFunc, "Referee", param.task_stack_depth_uart,
+                         param.thread_priority_uart);
   }
 
   void BindCMD(CMD& cmd) { cmd_ = &cmd; }
