@@ -1117,7 +1117,7 @@ class Referee
    */
   Referee(
       LibXR::UART& uart,
-      CMD* cmd = nullptr,
+      CMD* cmd,
       const Param& param = {.task_stack_depth_uart = 2048, .baudrate = 115200, .referee_chassis_tp_name = "chassis_ref", .referee_launcher_tp_name = "launcher_ref", .referee_robot_game_tp_name = "robot_game_ref", .referee_radar_tp_name = "radar_ref", .thread_priority_uart = LibXR::Thread::Priority::LOW})
 
       : uart_(std::addressof(uart)),
