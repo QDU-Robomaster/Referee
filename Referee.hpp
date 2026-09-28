@@ -2015,8 +2015,6 @@ class Referee
     // this->radar_pack_topic_.Publish(this->radar_pack_);
   }
 
-  void OnMonitor() {}
-
  private:
   void UpdateRadarPack()
   {
