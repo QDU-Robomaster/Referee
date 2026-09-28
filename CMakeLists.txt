@@ -4,7 +4,10 @@
 target_include_directories(xr PUBLIC ${CMAKE_CURRENT_LIST_DIR})
 
 # Auto-include source files
-file(GLOB MODULE_REFEREE_SRC CONFIGURE_DEPENDS
+file(
+  GLOB
+  MODULE_REFEREE_SRC
+  CONFIGURE_DEPENDS
   "${CMAKE_CURRENT_LIST_DIR}/*.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/*.cxx"
   "${CMAKE_CURRENT_LIST_DIR}/*.cc"
@@ -34,3 +37,10 @@ add_library(${_DEPS_TARGET} INTERFACE)
 
 # Register to global
 set_property(GLOBAL APPEND PROPERTY XR_MODULE_DEPS ${_DEPS_TARGET})
+
+if(BUILD_TESTING)
+  add_executable(referee_types_test ${CMAKE_CURRENT_LIST_DIR}/tests/types_test.cpp)
+  target_include_directories(referee_types_test PRIVATE ${CMAKE_CURRENT_LIST_DIR})
+  target_compile_features(referee_types_test PRIVATE cxx_std_20)
+  add_test(NAME referee_types_test COMMAND referee_types_test)
+endif()
