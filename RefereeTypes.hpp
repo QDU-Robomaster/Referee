@@ -2,9 +2,16 @@
 
 #include <cstdint>
 
-/** @brief 裁判模块发布的数据类型；不依赖串口、CMD 或解析器。 */
+/**
+ * @brief 裁判模块发布的数据类型。
+ *        Data types published by the referee Module.
+ */
 namespace RefereeTypes
 {
+/**
+ * @brief 0x0001 比赛状态数据。
+ *        0x0001 game status data.
+ */
 struct [[gnu::packed]] GameStatus
 {
   uint8_t game_type : 4;      /* 比赛类型 */
@@ -13,6 +20,10 @@ struct [[gnu::packed]] GameStatus
   uint64_t sync_time_stamp;   /* 时间戳 */
 };
 
+/**
+ * @brief 0x0201 机器人性能体系数据。
+ *        0x0201 robot performance data.
+ */
 struct [[gnu::packed]] RobotStatus
 {
   uint8_t robot_id;                  /* 本机器人 ID */
@@ -27,6 +38,10 @@ struct [[gnu::packed]] RobotStatus
   uint8_t power_launcher_output : 1; /* shooter输出，0为无输出，1为24V 输出 */
 };
 
+/**
+ * @brief 0x0203 机器人位置数据。
+ *        0x0203 robot position data.
+ */
 struct [[gnu::packed]] RobotPOS
 {
   float x;     /* 本机器人位置x坐标，单位m */
@@ -34,6 +49,10 @@ struct [[gnu::packed]] RobotPOS
   float angle; /* 本机器人测速模块的朝向 单位：度 正北为0度 */
 };
 
+/**
+ * @brief 0x0209 机器人 RFID 模块状态。
+ *        0x0209 robot RFID module status.
+ */
 struct [[gnu::packed]] RFID
 {
   uint32_t own_base : 1;                          /*己方基地增益点*/
@@ -73,6 +92,10 @@ struct [[gnu::packed]] RFID
   uint32_t enemy_tunnel_zrapezium_up : 1;   /*对方隧道增益(对方梯形高地较高处*/
 };
 
+/**
+ * @brief 0x020B 地面机器人位置数据。
+ *        0x020B ground robot position data.
+ */
 struct [[gnu::packed]] RobotPosForSentry
 {
   float hero_x;       /*己方英雄机器人位置 x 轴坐标，单位：m*/
@@ -87,6 +110,10 @@ struct [[gnu::packed]] RobotPosForSentry
   float res_2;        /*保留位*/
 };
 
+/**
+ * @brief 0x020D 哨兵自主决策相关信息同步。
+ *        0x020D sentry autonomous decision information.
+ */
 struct [[gnu::packed]] SentryInfo
 {
   uint32_t exchanged_bullet_num : 11;  /*允许发弹量*/
@@ -102,6 +129,10 @@ struct [[gnu::packed]] SentryInfo
   uint32_t res2 : 1;           /*保留位*/
 };
 
+/**
+ * @brief 机器人、比赛与发射相关的裁判系统摘要，紧凑布局共 92 字节。
+ *        Referee summary of robot, game and launcher data, 92 bytes in packed layout.
+ */
 struct [[gnu::packed]] RobotGameRefereePack
 {
   RobotStatus robot_status;     /* 机器人状态 */

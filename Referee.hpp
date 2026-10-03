@@ -29,17 +29,21 @@ depends:
 #include "uart.hpp"
 
 /**
- * @brief 裁判系统类，用于接收、解包裁判系统
+ * @brief RoboMaster 裁判系统串口收发模块。
+ *        RoboMaster referee system UART Module.
  *
- * @note 位域在Linux gcc/clang和arm-none-eabi-gcc
- *       的行为是一样的
+ * @details 接收并解析裁判系统数据帧，发布底盘、发射与比赛摘要 Topic，并发送客户端 UI、
+ *          哨兵与雷达决策等数据。紧凑结构体中的位域按 GCC / Clang 的位域布局解释。
+ *          Receives and parses referee system frames, publishes the chassis, launcher and
+ *          game summary Topics, and sends client UI, sentry and radar decisions.
+ *          Bit-fields in the packed structures follow the GCC / Clang bit-field layout.
  */
 class Referee
 {
  public:
   /**
-   * @brief 用于0x0104
-   *
+   * @brief 机器人 ID，用于 0x0104 裁判警告数据。
+   *        Robot IDs, used in the 0x0104 referee warning data.
    */
   enum class RobotID : uint8_t
   {
@@ -67,6 +71,10 @@ class Referee
     REF_BOT_BLU_BASE = 111,
   };
 
+  /**
+   * @brief 选手端 ID，0x8080 为裁判系统服务器。
+   *        Operator client IDs; 0x8080 is the referee system server.
+   */
   enum class ClientID : uint16_t
   {
     REF_CL_RED_HERO = 0x0101,
@@ -85,8 +93,8 @@ class Referee
   };
 
   /**
-   * @brief 子内容ID ,来源于0x0301
-   *
+   * @brief 子内容 ID，来源于 0x0301 机器人交互数据。
+   *        Sub-content IDs, from the 0x0301 robot interaction data.
    */
   enum class CMDID : uint16_t
   {
@@ -103,8 +111,8 @@ class Referee
   };
 
   /**
-   * @brief 裁判系统链路状态
-   *
+   * @brief 裁判系统链路状态。
+   *        Referee link status.
    */
   enum class Status : uint8_t
   {
@@ -113,8 +121,8 @@ class Referee
   };
 
   /**
-   * @brief 命令码定义，裁判系统更新写在这里
-   *
+   * @brief 裁判系统命令码。
+   *        Referee system command IDs.
    */
   enum class CommandID : uint16_t
   {
@@ -163,8 +171,8 @@ class Referee
   };
 
   /**
-   * @brief 比赛模式，来源0x0001
-   *
+   * @brief 比赛类型，来源 0x0001。
+   *        Game type, from 0x0001.
    */
   enum class GameType : uint8_t
   {
@@ -176,8 +184,8 @@ class Referee
   };
 
   /**
-   * @brief 当前比赛阶段，来源0x0001
-   *
+   * @brief 当前比赛阶段，来源 0x0001。
+   *        Current game stage, from 0x0001.
    */
   enum class GameProcess : uint8_t
   {
@@ -190,8 +198,8 @@ class Referee
   };
 
   /**
-   * @brief 获胜方，来源0x0002
-   *
+   * @brief 获胜方，来源 0x0002。
+   *        Winner, from 0x0002.
    */
   enum class Winner : uint8_t
   {
@@ -201,8 +209,8 @@ class Referee
   };
 
   /**
-   * @brief 键盘数据，来源于0x0304
-   *
+   * @brief 键盘按键位，来源 0x0304。
+   *        Keyboard key bits, from 0x0304.
    */
   enum class KeyBoard : uint16_t
   {
@@ -225,8 +233,8 @@ class Referee
   };
 
   /**
-   * @brief UI 删除操作类型，来源子内容ID 0x0100
-   *
+   * @brief UI 删除操作类型，来源子内容 ID 0x0100。
+   *        UI delete operation type, from sub-content ID 0x0100.
    */
   enum class UIDeleteType : uint8_t
   {
@@ -236,8 +244,8 @@ class Referee
   };
 
   /**
-   * @brief UI 图形操作类型，来源子内容ID 0x0101
-   *
+   * @brief UI 图形操作类型，来源子内容 ID 0x0101。
+   *        UI figure operation type, from sub-content ID 0x0101.
    */
   enum class UIFigureOp : uint8_t
   {
@@ -248,8 +256,8 @@ class Referee
   };
 
   /**
-   * @brief UI 图形类型，来源子内容ID 0x0101
-   *
+   * @brief UI 图形类型，来源子内容 ID 0x0101。
+   *        UI figure type, from sub-content ID 0x0101.
    */
   enum class UIFigureType : uint8_t
   {
@@ -264,8 +272,8 @@ class Referee
   };
 
   /**
-   * @brief UI 图形颜色，来源子内容ID 0x0101
-   *
+   * @brief UI 图形颜色，来源子内容 ID 0x0101。
+   *        UI figure color, from sub-content ID 0x0101.
    */
   enum class UIColor : uint8_t
   {
@@ -281,8 +289,8 @@ class Referee
   };
 
   /**
-   * @brief UI 图层删除包，来源子内容ID 0x0100
-   *
+   * @brief UI 图层删除包，来源子内容 ID 0x0100。
+   *        UI layer deletion packet, from sub-content ID 0x0100.
    */
   struct [[gnu::packed]] UILayerDelete
   {
@@ -291,8 +299,8 @@ class Referee
   };
 
   /**
-   * @brief UI 单图形定义，来源子内容ID 0x0101
-   *
+   * @brief UI 单图形定义，来源子内容 ID 0x0101。
+   *        UI single figure definition, from sub-content ID 0x0101.
    */
   struct [[gnu::packed]] UIFigure
   {
@@ -312,8 +320,8 @@ class Referee
   };
 
   /**
-   * @brief UI 双图形，来源子内容ID 0x0102
-   *
+   * @brief UI 双图形，来源子内容 ID 0x0102。
+   *        UI two figures, from sub-content ID 0x0102.
    */
   struct [[gnu::packed]] UIFigure2
   {
@@ -321,8 +329,8 @@ class Referee
   };
 
   /**
-   * @brief UI 五图形，来源子内容ID 0x0103
-   *
+   * @brief UI 五图形，来源子内容 ID 0x0103。
+   *        UI five figures, from sub-content ID 0x0103.
    */
   struct [[gnu::packed]] UIFigure5
   {
@@ -330,8 +338,8 @@ class Referee
   };
 
   /**
-   * @brief UI 七图形，来源子内容ID 0x0104
-   *
+   * @brief UI 七图形，来源子内容 ID 0x0104。
+   *        UI seven figures, from sub-content ID 0x0104.
    */
   struct [[gnu::packed]] UIFigure7
   {
@@ -339,8 +347,8 @@ class Referee
   };
 
   /**
-   * @brief UI 字符图形，来源子内容ID 0x0110
-   *
+   * @brief UI 字符图形，来源子内容 ID 0x0110。
+   *        UI character figure, from sub-content ID 0x0110.
    */
   struct [[gnu::packed]] UICharacter
   {
@@ -356,8 +364,8 @@ class Referee
   static_assert(sizeof(UICharacter) == 45, "UI character size mismatch");
 
   /**
-   * @brief 裁判系统包头
-   *
+   * @brief 裁判系统包头。
+   *        Referee system frame header.
    */
   struct [[gnu::packed]] Header
   {
@@ -368,14 +376,14 @@ class Referee
   };
 
   /**
-   * @brief 0x0001, 比赛状态数据，固定以 1Hz 频率发送
-   *
+   * @brief 0x0001 比赛状态数据，固定以 1 Hz 发送。
+   *        0x0001 game status data, sent at a fixed 1 Hz.
    */
   using GameStatus = RefereeTypes::GameStatus;
 
   /**
-   * @brief 0x0002,比赛结果数据，比赛结束触发发送
-   *
+   * @brief 0x0002 比赛结果数据，比赛结束时触发发送。
+   *        0x0002 game result data, sent when the game ends.
    */
   struct [[gnu::packed]] GameResult
   {
@@ -383,8 +391,8 @@ class Referee
   };
 
   /**
-   * @brief 0x0003,机器人血量数据，固定以3Hz频率发送
-   *
+   * @brief 0x0003 机器人血量数据，固定以 3 Hz 发送。
+   *        0x0003 robot HP data, sent at a fixed 3 Hz.
    */
   struct [[gnu::packed]] RobotHP
   {
@@ -399,8 +407,8 @@ class Referee
   };
 
   /**
-   * @brief 0x0101 场地事件数据，固定以 1Hz 频率发送
-   *
+   * @brief 0x0101 场地事件数据，固定以 1 Hz 发送。
+   *        0x0101 field event data, sent at a fixed 1 Hz.
    */
   struct [[gnu::packed]] FieldEvents
   {
@@ -421,9 +429,8 @@ class Referee
   };
 
   /**
-   * @brief 0x0104 裁判警告数据，1Hz，触发时发送
-   *
-   * @return typedef struct
+   * @brief 0x0104 裁判警告数据，1 Hz，触发时发送。
+   *        0x0104 referee warning data, 1 Hz, sent when triggered.
    */
   struct [[gnu::packed]] Warning
   {
@@ -433,8 +440,8 @@ class Referee
   };
 
   /**
-   * @brief 0x0105 飞镖发射相关数据，固定1Hz发送
-   *
+   * @brief 0x0105 飞镖发射相关数据，固定以 1 Hz 发送。
+   *        0x0105 dart launch data, sent at a fixed 1 Hz.
    */
   struct [[gnu::packed]] DartCountdown
   {
@@ -447,14 +454,14 @@ class Referee
   };
 
   /**
-   * @brief 0x0201 机器人性能体系数据，10Hz
-   *
+   * @brief 0x0201 机器人性能体系数据，10 Hz。
+   *        0x0201 robot performance data, 10 Hz.
    */
   using RobotStatus = RefereeTypes::RobotStatus;
 
   /**
-   * @brief 0x0202 实时底盘缓冲能量和射击热量, 10Hz
-   *
+   * @brief 0x0202 实时底盘缓冲能量和射击热量，10 Hz。
+   *        0x0202 real-time chassis power buffer and shooting heat, 10 Hz.
    */
   struct [[gnu::packed]] PowerHeat
   {
@@ -467,14 +474,14 @@ class Referee
   };
 
   /**
-   * @brief 0x0203 机器人位置数据, 1Hz
-   *
+   * @brief 0x0203 机器人位置数据，1 Hz。
+   *        0x0203 robot position data, 1 Hz.
    */
   using RobotPOS = RefereeTypes::RobotPOS;
 
   /**
-   * @brief 0x0204 机器人增益和底盘能量数据, 3Hz
-   *
+   * @brief 0x0204 机器人增益和底盘能量数据，3 Hz。
+   *        0x0204 robot buff and chassis energy data, 3 Hz.
    */
   struct [[gnu::packed]] RobotBuff
   {
@@ -493,8 +500,8 @@ class Referee
   };
 
   /**
-   * @brief 0x0206 伤害状态数据，伤害发生后发送
-   *
+   * @brief 0x0206 伤害状态数据，伤害发生后发送。
+   *        0x0206 damage data, sent after damage occurs.
    */
   struct [[gnu::packed]] RobotDamage
   {
@@ -503,8 +510,8 @@ class Referee
   };
 
   /**
-   * @brief 0x0207 实时射击数据，弹丸发射后发送
-   *
+   * @brief 0x0207 实时射击数据，弹丸发射后发送。
+   *        0x0207 real-time shooting data, sent after a projectile is fired.
    */
   struct [[gnu::packed]] LauncherData
   {
@@ -515,8 +522,8 @@ class Referee
   };
 
   /**
-   * @brief 0x0208 允许发弹量, 10Hz
-   *
+   * @brief 0x0208 允许发弹量，10 Hz。
+   *        0x0208 projectile allowance, 10 Hz.
    */
   struct [[gnu::packed]] BulletRemain
   {
@@ -527,14 +534,14 @@ class Referee
   };
 
   /**
-   * @brief 0x0209 机器人RFID模块状态, 3Hz
-   *
+   * @brief 0x0209 机器人 RFID 模块状态，3 Hz。
+   *        0x0209 robot RFID module status, 3 Hz.
    */
   using RFID = RefereeTypes::RFID;
 
   /**
-   * @brief 0x020A 飞镖选手端指令数据, 3Hz
-   *
+   * @brief 0x020A 飞镖选手端指令数据，3 Hz。
+   *        0x020A dart operator-client command data, 3 Hz.
    */
   struct [[gnu::packed]] DartClient
   {
@@ -545,14 +552,14 @@ class Referee
   };
 
   /**
-   * @brief 0x020B 地面机器人位置数据, 1Hz
-   *
+   * @brief 0x020B 地面机器人位置数据，1 Hz。
+   *        0x020B ground robot position data, 1 Hz.
    */
   using RobotPosForSentry = RefereeTypes::RobotPosForSentry;
 
   /**
-   * @brief 0x020C 雷达标记进度数据, 1Hz
-   *
+   * @brief 0x020C 雷达标记进度数据，1 Hz。
+   *        0x020C radar marking progress data, 1 Hz.
    */
   struct [[gnu::packed]] RadarMarkProgress
   {
@@ -569,14 +576,14 @@ class Referee
   };
 
   /**
-   * @brief 0x020D 哨兵自主决策相关信息同步, 1Hz
-   *
+   * @brief 0x020D 哨兵自主决策相关信息同步，1 Hz。
+   *        0x020D sentry autonomous decision information, 1 Hz.
    */
   using SentryInfo = RefereeTypes::SentryInfo;
 
   /**
-   * @brief 0x020E 雷达自主决策相关信息同步, 1Hz
-   *
+   * @brief 0x020E 雷达自主决策相关信息同步，1 Hz。
+   *        0x020E radar autonomous decision information, 1 Hz.
    */
   struct [[gnu::packed]] RadarInfo
   {
@@ -588,8 +595,8 @@ class Referee
   };
 
   /**
-   * @brief 0x0301 机器人交互数据, 30Hz
-   *
+   * @brief 0x0301 机器人交互数据，30 Hz。
+   *        0x0301 robot interaction data, 30 Hz.
    */
   struct [[gnu::packed]] RobotInteractionData
   {
@@ -600,9 +607,12 @@ class Referee
   };
 
   /**
-   * @brief 0x0302 自定义控制器和机器人,30Hz,图传链路;
-   *       操作手可使用自定义控制器通过图传链路向对应的机器人发送数据
+   * @brief 0x0302 自定义控制器与机器人交互数据，30 Hz，图传链路。
+   *        0x0302 custom controller and robot data, 30 Hz, video link.
    *
+   * @details 操作手可使用自定义控制器经图传链路向对应机器人发送数据。
+   *          The operator can send data to the robot over the video link with a custom
+   *          controller.
    */
   struct [[gnu::packed]] CustomController
   {
@@ -610,8 +620,9 @@ class Referee
   };
 
   /**
-   * @brief 0x0303 选手端小地图交互数据, 选手触发发送
-   *
+   * @brief 0x0303 选手端小地图交互数据，选手触发时发送。
+   *        0x0303 operator-client minimap interaction data, sent when triggered by the
+   *        operator.
    */
   struct [[gnu::packed]] ClientMap
   {
@@ -623,9 +634,12 @@ class Referee
   };
 
   /**
-   * @brief 0x0304 键鼠遥控数据， 30Hz, 图传链路;
-   *        通过遥控器发送的键鼠遥控数据将同步通过图传链路发送给对应机器人
+   * @brief 0x0304 键鼠遥控数据，30 Hz，图传链路。
+   *        0x0304 keyboard and mouse remote data, 30 Hz, video link.
    *
+   * @details 通过遥控器发送的键鼠数据经图传链路同步发送给对应机器人。
+   *          Keyboard and mouse data sent through the remote controller is forwarded to
+   *          the robot over the video link.
    */
   struct [[gnu::packed]] KeyboardMouse
   {
@@ -639,8 +653,8 @@ class Referee
   };
 
   /**
-   * @brief 0x0305 小地图接收雷达数据, 5HzMax
-   *
+   * @brief 0x0305 小地图接收雷达数据，最高 5 Hz。
+   *        0x0305 minimap radar data, 5 Hz at most.
    */
   struct [[gnu::packed]] MapRobotData
   {
@@ -659,9 +673,15 @@ class Referee
   };
 
   /**
-   * @brief 0x0306 自定义控制器交互, 30Hz;
-   *        操作手可使用自定义控制器模拟键鼠操作选手端
-   * @warning 若无新的按键信息，将保持上一帧数据的按下状态
+   * @brief 0x0306 自定义控制器交互数据，30 Hz。
+   *        0x0306 custom controller interaction data, 30 Hz.
+   *
+   * @details 操作手可使用自定义控制器模拟键鼠操作选手端。
+   *          The operator can simulate keyboard and mouse input on the operator client
+   *          with a custom controller.
+   *
+   * @note 没有新的按键信息时，保持上一帧数据的按下状态。
+   *       Without new key information, the pressed state of the previous frame is kept.
    */
   struct [[gnu::packed]] CustomKeyMouseData
   {
@@ -675,11 +695,14 @@ class Referee
   };
 
   /**
-   * @brief 0x0307 小地图接收路径数据, 1Hz
+   * @brief 0x0307 小地图接收路径数据，1 Hz。
+   *        0x0307 minimap path data, 1 Hz.
    *
-   * @note 哨兵机器人或半自动控制方式的机器人可通过
-   *       常规链路向对应的操作手选手端发送路径坐标
-   *       数据，该路径会在小地图上显示
+   * @details 哨兵机器人或半自动控制方式的机器人可经常规链路向对应操作手的选手端发送路径坐
+   *          标数据，该路径显示在小地图上。
+   *          A sentry robot or a robot under semi-automatic control can send path
+   *          coordinates to the operator client over the regular link; the path is shown
+   *          on the minimap.
    */
   struct [[gnu::packed]] SentryPosition
   {
@@ -692,9 +715,11 @@ class Referee
   };
 
   /**
-   * @brief 0x0308 选手端小地图接受机器人消息, 3Hz
+   * @brief 0x0308 选手端小地图接收机器人消息，3 Hz。
+   *        0x0308 robot messages received by the operator-client minimap, 3 Hz.
    *
-   * @note 编码发送时注意数据的大小端问题
+   * @note 编码发送时需考虑数据的字节序。
+   *       Byte order has to be considered when encoding the data for sending.
    */
   struct [[gnu::packed]] RobotPosition
   {
@@ -704,10 +729,13 @@ class Referee
   };
 
   /**
-   * @brief 0x0309 自定义数据
-   *        机器人可通过图传链路向对应的操作手选手端
-   *        连接的自定义控制器发送数据(RMUL暂不适用)
+   * @brief 0x0309 自定义数据，30 字节，图传链路。
+   *        0x0309 custom data, 30 bytes, video link.
    *
+   * @details 机器人可经图传链路向操作手选手端连接的自定义控制器发送数据（RMUL
+   *          暂不适用）。
+   *          A robot can send data over the video link to the custom controller connected
+   *          to the operator client (not applicable to RMUL yet).
    */
   struct [[gnu::packed]] CustomData1
   {
@@ -715,10 +743,13 @@ class Referee
   };
 
   /**
-   * @brief 0x0310 自定义数据
-   *        机器人可通过图传链路向对应的操作手选手端
-   *        连接的自定义控制器发送数据(RMUL暂不适用)
+   * @brief 0x0310 自定义数据，150 字节，图传链路。
+   *        0x0310 custom data, 150 bytes, video link.
    *
+   * @details 机器人可经图传链路向操作手选手端连接的自定义控制器发送数据（RMUL
+   *          暂不适用）。
+   *          A robot can send data over the video link to the custom controller connected
+   *          to the operator client (not applicable to RMUL yet).
    */
   struct [[gnu::packed]] CustomData2
   {
@@ -726,8 +757,8 @@ class Referee
   };
 
   /**
-   * @brief 0x0A01 对方机器人的位置坐标
-   *
+   * @brief 0x0A01 对方机器人的位置坐标。
+   *        0x0A01 positions of the enemy robots.
    */
   struct [[gnu::packed]] RadarEnemyRobotPos
   {
@@ -746,8 +777,8 @@ class Referee
   };
 
   /**
-   * @brief 0x0A02 对方机器人的血量信息
-   *
+   * @brief 0x0A02 对方机器人的血量信息。
+   *        0x0A02 HP of the enemy robots.
    */
   struct [[gnu::packed]] RadarEnemyRobotHP
   {
@@ -760,8 +791,8 @@ class Referee
   };
 
   /**
-   * @brief 0x0A03 对方机器人的剩余发弹量信息
-   *
+   * @brief 0x0A03 对方机器人的剩余发弹量信息。
+   *        0x0A03 remaining projectile allowance of the enemy robots.
    */
   struct [[gnu::packed]] RadarEnemyBullet
   {
@@ -774,8 +805,8 @@ class Referee
   };
 
   /**
-   * @brief 0x0A04 对方队伍的宏观状态信息
-   *
+   * @brief 0x0A04 对方队伍的宏观状态信息。
+   *        0x0A04 overall status of the enemy team.
    */
   struct [[gnu::packed]] RadarEnemyState
   {
@@ -797,8 +828,8 @@ class Referee
   };
 
   /**
-   * @brief 0x0A05 对方各机器人当前增益效果
-   *
+   * @brief 0x0A05 对方各机器人当前增益效果。
+   *        0x0A05 current buffs of the enemy robots.
    */
   struct [[gnu::packed]] RadarRobotBuff
   {
@@ -834,8 +865,8 @@ class Referee
   };
 
   /**
-   * @brief 0x0A06 对方干扰波密钥
-   *
+   * @brief 0x0A06 对方干扰波密钥。
+   *        0x0A06 interference-wave key of the enemy team.
    */
   struct [[gnu::packed]] RadarEnemyKey
   {
@@ -843,8 +874,8 @@ class Referee
   };
 
   /**
-   * @brief 0x0120 哨兵自主决策指令
-   *
+   * @brief 0x0120 哨兵自主决策指令。
+   *        0x0120 sentry autonomous decision command.
    */
   struct [[gnu::packed]] SentryDecisionData
   {
@@ -859,8 +890,8 @@ class Referee
   };
 
   /**
-   * @brief 0x0121 雷达自主决策指令
-   *
+   * @brief 0x0121 雷达自主决策指令。
+   *        0x0121 radar autonomous decision command.
    */
   struct [[gnu::packed]] RadarDecisionData
   {
@@ -875,8 +906,8 @@ class Referee
   };
 
   /**
-   * @brief 0x0F01 设置图传出图信道，应答
-   *
+   * @brief 0x0F01 设置图传出图信道的请求与应答。
+   *        0x0F01 request and reply for setting the video-link output channel.
    */
   struct [[gnu::packed]] SetVideoTransChannel
   {
@@ -884,9 +915,12 @@ class Referee
   };
 
   /**
-   * @brief 0x0F02 查询图传出图信道
+   * @brief 0x0F02 查询图传出图信道。
+   *        0x0F02 query of the video-link output channel.
    *
-   * @note 查询请求不需要数据段；应答为1字节当前信道
+   * @note 查询请求的数据段为空，应答为 1 字节的当前信道。
+   *       The query request has an empty data segment; the reply is one byte holding the
+   *       current channel.
    */
   struct [[gnu::packed]] GetVideoTransChannel
   {
@@ -894,8 +928,8 @@ class Referee
   };
 
   /**
-   * @brief 传递的总结构体,共27条
-   *
+   * @brief 裁判系统数据集，保存各命令码最近一次解析得到的数据。
+   *        Referee data set holding the latest parsed data of each command ID.
    */
   struct Data
   {
@@ -942,8 +976,8 @@ class Referee
   };
 
   /**
-   * @brief 发射模块需要的裁判系统数据
-   *
+   * @brief 发射模块使用的裁判系统数据。
+   *        Referee data used by the launcher Module.
    */
   struct [[gnu::packed]] LauncherPack
   {
@@ -955,8 +989,8 @@ class Referee
   };
 
   /**
-   * @brief 底盘模块需要的包
-   *
+   * @brief 底盘模块使用的裁判系统数据。
+   *        Referee data used by the chassis Module.
    */
   struct [[gnu::packed]] ChassisPack
   {
@@ -965,25 +999,26 @@ class Referee
   };
 
   /**
-   * @brief 哨兵姿态
-   *
+   * @brief 哨兵姿态。
+   *        Sentry posture.
    */
   enum class State : uint8_t
   {
-    ATTACH = 1,
-    DEFEND = 2,
-    GUERRILLA = 3,
+    ATTACH = 1,     ///< 进攻 Attack
+    DEFEND = 2,     ///< 防御 Defend
+    GUERRILLA = 3,  ///< 移动 Move
   };
 
   /**
-   * @brief 机器人、比赛和发射相关的裁判系统摘要
-   *
+   * @brief 机器人、比赛与发射相关的裁判系统摘要。
+   *        Referee summary of robot, game and launcher data.
    */
   using RobotGameRefereePack = RefereeTypes::RobotGameRefereePack;
 
   /**
-   * @brief 哨兵包定义
-   *
+   * @brief 雷达数据包，含地面机器人位置与本机位置。
+   *        Radar data packet with the ground robot positions and the position of this
+   *        robot.
    */
   struct [[gnu::packed]] RadarPack
   {
@@ -993,9 +1028,11 @@ class Referee
   };
 
   /**
-   * @brief 设置哨兵将要兑换的发弹量值
+   * @brief 累加哨兵将要兑换的发弹量。
+   *        Add to the projectile amount the sentry is going to exchange.
    *
-   * @param need_bullet 需要兑换的发弹量
+   * @param need_bullet 增加的发弹量。
+   *                    Amount to add.
    */
   void SetNeedBullet(uint8_t need_bullet)
   {
@@ -1004,9 +1041,11 @@ class Referee
   }
 
   /**
-   * @brief 哨兵机器人是否确认复活
+   * @brief 设置哨兵是否确认复活。
+   *        Set whether the sentry confirms revival.
    *
-   * @param revival 是否确认复活
+   * @param revival 是否确认复活。
+   *                Whether revival is confirmed.
    */
   void SetConfirmRevival(bool revival)
   {
@@ -1015,9 +1054,12 @@ class Referee
   }
 
   /**
-   * @brief 哨兵远程兑换发弹量
+   * @brief 记录一次哨兵远程兑换发弹量：请求次数加 1，兑换发弹量累加 `bullet_number`。
+   *        Record one remote projectile exchange of the sentry: the request count is
+   *        incremented by 1 and `bullet_number` is added to the exchanged amount.
    *
-   * @param bullet_number 要买的发弹量
+   * @param bullet_number 兑换的发弹量。
+   *                      Projectile amount to exchange.
    */
   void SetBulletRemote(uint8_t bullet_number)
   {
@@ -1027,8 +1069,9 @@ class Referee
   }
 
   /**
-   * @brief 哨兵远程兑换血量
-   *
+   * @brief 记录一次哨兵远程兑换血量：请求次数加 1。
+   *        Record one remote HP exchange of the sentry: the request count is incremented
+   *        by 1.
    */
   void SetHPRemote()
   {
@@ -1037,9 +1080,11 @@ class Referee
   }
 
   /**
-   * @brief 远程买活
+   * @brief 设置哨兵是否兑换立即复活。
+   *        Set whether the sentry exchanges for an immediate revival.
    *
-   * @param revival 是否兑换立即复活
+   * @param revival 是否兑换立即复活。
+   *                Whether the immediate revival is exchanged.
    */
   void SetRevivalRemote(bool revival)
   {
@@ -1048,9 +1093,11 @@ class Referee
   }
 
   /**
-   * @brief 哨兵修改姿态
+   * @brief 设置哨兵姿态指令。
+   *        Set the sentry posture command.
    *
-   * @param state 要切换的状态
+   * @param state 目标姿态。
+   *              Target posture.
    */
   void SetSwitchMode(State state)
   {
@@ -1059,9 +1106,15 @@ class Referee
   }
 
   /**
-   * @brief 发送哨兵包
+   * @brief 把保存的哨兵决策数据（0x0120）发送给裁判系统服务器。
+   *        Send the stored sentry decision data (0x0120) to the referee system server.
    *
-   * @note 在定时器线程里，按裁判系统带宽要求调用这个函数
+   * @note 应在定时器线程中按裁判系统的带宽要求周期性调用。
+   *       Intended to be called periodically from a timer thread at the rate the referee
+   *       system bandwidth allows.
+   *
+   * @return `SendStudentCmd` 的返回值。
+   *         The return value of `SendStudentCmd`.
    */
   LibXR::ErrorCode SendSentryPack()
   {
@@ -1075,6 +1128,13 @@ class Referee
                           payload);
   }
 
+  /**
+   * @brief 把保存的雷达数据包（0x0279）发送出去。
+   *        Send the stored radar data packet (0x0279).
+   *
+   * @return `SendStudentCmd` 的返回值。
+   *         The return value of `SendStudentCmd`.
+   */
   LibXR::ErrorCode SendRadarPack()
   {
     RadarPack payload{};
@@ -1087,21 +1147,40 @@ class Referee
                           GetRobotID() + 2, payload);
   }
 
+  /**
+   * @brief 构造参数。
+   *        Construction parameters.
+   */
   struct Param
   {
-    uint32_t task_stack_depth_uart;
-    uint32_t baudrate;
-    const char* referee_chassis_tp_name;
-    const char* referee_launcher_tp_name;
-    const char* referee_robot_game_tp_name;
-    const char* referee_radar_tp_name;
-    LibXR::Thread::Priority thread_priority_uart;
+    uint32_t task_stack_depth_uart;  ///< 线程栈深
+    ///< Thread stack depth
+    uint32_t baudrate;  ///< 串口波特率
+    ///< UART baud rate
+    const char* referee_chassis_tp_name;  ///< 底盘 Topic 名称
+    ///< Chassis Topic name
+    const char* referee_launcher_tp_name;  ///< 发射 Topic 名称
+    ///< Launcher Topic name
+    const char* referee_robot_game_tp_name;  ///< 摘要 Topic 名称
+    ///< Summary Topic name
+    const char* referee_radar_tp_name;  ///< 雷达 Topic 名称
+    ///< Radar Topic name
+    LibXR::Thread::Priority thread_priority_uart;  ///< 线程优先级
+    ///< Thread priority
   };
 
   /**
-   * @brief Construct a new Referee object
+   * @brief 构造 Referee，配置串口、创建 Topic 并启动解析线程。
+   *        Construct Referee, configure the UART, create the Topics and start the parsing
+   *        thread.
    *
-   * @param param Value configuration.
+   * @param uart 连接裁判系统或图传链路的串口。
+   *             UART connected to the referee system or the video link.
+   * @param cmd 接收图传键鼠控制的 CMD 实例，可为 `nullptr`。
+   *            CMD instance that receives the video-link keyboard and mouse control, may
+   *            be `nullptr`.
+   * @param param 构造参数。
+   *              Construction parameters.
    */
   Referee(
       LibXR::UART& uart,
@@ -1129,14 +1208,49 @@ class Referee
                          param.thread_priority_uart);
   }
 
+  /**
+   * @brief 绑定接收图传键鼠控制的 CMD。
+   *        Bind the CMD that receives the video-link keyboard and mouse control.
+   *
+   * @param cmd CMD 实例。
+   *            CMD instance.
+   */
   void BindCMD(CMD& cmd) { cmd_ = &cmd; }
 
+  /**
+   * @brief 发送一帧裁判系统数据，写入由发送锁串行化。
+   *        Send one referee system frame; writes are serialized by the transmit lock.
+   *
+   * @param cmd_id 命令码。
+   *               Command ID.
+   * @param payload 数据段指针，长度为 0 时可为 `nullptr`。
+   *                Pointer to the data segment, may be `nullptr` when the length is 0.
+   * @param PAYLOAD_LEN 数据段长度，单位字节。
+   *                    Length of the data segment in bytes.
+   * @return 帧超过发送缓冲区（256 字节）时为 `ErrorCode::ARG_ERR`，否则为串口写入结果。
+   *         `ErrorCode::ARG_ERR` when the frame exceeds the transmit buffer (256 bytes),
+   *         otherwise the UART write result.
+   */
   LibXR::ErrorCode SendFrame(CommandID cmd_id, const void* payload, uint16_t PAYLOAD_LEN)
   {
     LibXR::Mutex::LockGuard lock(tx_mutex_);
     return SendFrameLocked(cmd_id, payload, PAYLOAD_LEN);
   }
 
+  /**
+   * @brief 发送一帧裁判系统数据，调用方已持有发送锁。
+   *        Send one referee system frame; the caller already holds the transmit lock.
+   *
+   * @param cmd_id 命令码。
+   *               Command ID.
+   * @param payload 数据段指针，长度为 0 时可为 `nullptr`。
+   *                Pointer to the data segment, may be `nullptr` when the length is 0.
+   * @param PAYLOAD_LEN 数据段长度，单位字节。
+   *                    Length of the data segment in bytes.
+   * @return 帧超过发送缓冲区（256 字节）时为 `ErrorCode::ARG_ERR`，否则为串口写入结果。
+   *         `ErrorCode::ARG_ERR` when the frame exceeds the transmit buffer (256 bytes),
+   *         otherwise the UART write result.
+   */
   LibXR::ErrorCode SendFrameLocked(CommandID cmd_id, const void* payload,
                                    uint16_t PAYLOAD_LEN)
   {
@@ -1176,12 +1290,38 @@ class Referee
     return uart_->Write({tx_buf_, offset}, tx_op_);
   }
 
+  /**
+   * @brief 发送以 `payload` 为数据段的一帧。
+   *        Send one frame whose data segment is `payload`.
+   *
+   * @param cmd_id 命令码。
+   *               Command ID.
+   * @param payload 数据段对象。
+   *                Data segment object.
+   * @return 同 `SendFrame(CommandID, const void*, uint16_t)`。
+   *         Same as `SendFrame(CommandID, const void*, uint16_t)`.
+   */
   template <typename PayloadType>
   LibXR::ErrorCode SendFrame(CommandID cmd_id, const PayloadType& payload)
   {
     return SendFrame(cmd_id, &payload, static_cast<uint16_t>(sizeof(PayloadType)));
   }
 
+  /**
+   * @brief 发送机器人交互数据（0x0301）。
+   *        Send robot interaction data (0x0301).
+   *
+   * @param data_cmd_id 子内容 ID。
+   *                    Sub-content ID.
+   * @param sender_id 发送者 ID。
+   *                  Sender ID.
+   * @param receiver_id 接收者 ID。
+   *                    Receiver ID.
+   * @param payload 子内容数据段。
+   *                Sub-content data segment.
+   * @return 同 `SendFrame`。
+   *         Same as `SendFrame`.
+   */
   template <typename PayloadType>
   LibXR::ErrorCode SendStudentCmd(CMDID data_cmd_id, uint16_t sender_id,
                                   uint16_t receiver_id, const PayloadType& payload)
@@ -1202,8 +1342,38 @@ class Referee
                            static_cast<uint16_t>(sizeof(interaction_pack)));
   }
 
+  /**
+   * @brief 获取本机器人 ID。
+   *        Get the ID of this robot.
+   *
+   * @return 最近一次 0x0201 数据中的 `robot_id`。
+   *         The `robot_id` of the latest 0x0201 data.
+   */
   uint16_t GetRobotID() const { return data_.robot_status.robot_id; }
 
+  /**
+   * @brief 初始化图形的公共字段。
+   *        Initialize the common fields of a figure.
+   *
+   * @param fig 被初始化的图形。
+   *            Figure to initialize.
+   * @param name 图形名，取前 3 个字符。
+   *             Figure name, the first 3 characters are used.
+   * @param op 图形操作。
+   *           Figure operation.
+   * @param type 图形类型。
+   *             Figure type.
+   * @param layer 图层号，0~9。
+   *              Layer number, 0 to 9.
+   * @param color 颜色。
+   *              Color.
+   * @param width 线宽。
+   *              Line width.
+   * @param x 起点 x 坐标。
+   *          Start x coordinate.
+   * @param y 起点 y 坐标。
+   *          Start y coordinate.
+   */
   static void InitFigure(UIFigure& fig, const char* name, UIFigureOp op,
                          UIFigureType type, uint8_t layer, UIColor color, uint16_t width,
                          uint16_t x, uint16_t y)
@@ -1219,6 +1389,16 @@ class Referee
     fig.start_y = y;
   }
 
+  /**
+   * @brief 把 32 位整数拆分写入图形的 `details_c`、`details_d` 与 `details_e`。
+   *        Split a 32-bit integer into `details_c`, `details_d` and `details_e` of a
+   *        figure.
+   *
+   * @param fig 目标图形。
+   *            Target figure.
+   * @param value 整数值。
+   *              Integer value.
+   */
   static void SetFigureValue32(UIFigure& fig, int32_t value)
   {
     const uint32_t RAW = static_cast<uint32_t>(value);
@@ -1227,6 +1407,31 @@ class Referee
     fig.details_e = (RAW >> 21) & 0x7FFu;
   }
 
+  /**
+   * @brief 生成字符图形。
+   *        Build a character figure.
+   *
+   * @param fig 输出的字符图形。
+   *            Output character figure.
+   * @param name 图形名。
+   *             Figure name.
+   * @param op 图形操作。
+   *           Figure operation.
+   * @param layer 图层号。
+   *              Layer number.
+   * @param color 颜色。
+   *              Color.
+   * @param font_size 字号。
+   *                  Font size.
+   * @param width 线宽。
+   *              Line width.
+   * @param x 起点 x 坐标。
+   *          Start x coordinate.
+   * @param y 起点 y 坐标。
+   *          Start y coordinate.
+   * @param text 文本，最多取 30 字节，可为 `nullptr`。
+   *             Text, at most 30 bytes are used, may be `nullptr`.
+   */
   void FillCharacter(Referee::UICharacter& fig, const char* name, Referee::UIFigureOp op,
                      uint8_t layer, Referee::UIColor color, uint16_t font_size,
                      uint16_t width, uint16_t x, uint16_t y, const char* text)
@@ -1252,6 +1457,31 @@ class Referee
     fig.grapic_data_struct.start_y = y;
   }
 
+  /**
+   * @brief 生成直线图形。
+   *        Build a line figure.
+   *
+   * @param fig 输出的图形。
+   *            Output figure.
+   * @param name 图形名。
+   *             Figure name.
+   * @param op 图形操作。
+   *           Figure operation.
+   * @param layer 图层号。
+   *              Layer number.
+   * @param color 颜色。
+   *              Color.
+   * @param width 线宽。
+   *              Line width.
+   * @param x1 起点 x 坐标。
+   *           Start x coordinate.
+   * @param y1 起点 y 坐标。
+   *           Start y coordinate.
+   * @param x2 终点 x 坐标。
+   *           End x coordinate.
+   * @param y2 终点 y 坐标。
+   *           End y coordinate.
+   */
   void FillLine(Referee::UIFigure& fig, const char* name, Referee::UIFigureOp op,
                 uint8_t layer, Referee::UIColor color, uint16_t width, uint16_t x1,
                 uint16_t y1, uint16_t x2, uint16_t y2)
@@ -1262,6 +1492,31 @@ class Referee
     fig.details_e = y2;
   }
 
+  /**
+   * @brief 生成矩形图形。
+   *        Build a rectangle figure.
+   *
+   * @param fig 输出的图形。
+   *            Output figure.
+   * @param name 图形名。
+   *             Figure name.
+   * @param op 图形操作。
+   *           Figure operation.
+   * @param layer 图层号。
+   *              Layer number.
+   * @param color 颜色。
+   *              Color.
+   * @param width 线宽。
+   *              Line width.
+   * @param x1 一个顶点的 x 坐标。
+   *           x coordinate of one vertex.
+   * @param y1 一个顶点的 y 坐标。
+   *           y coordinate of one vertex.
+   * @param x2 对角顶点的 x 坐标。
+   *           x coordinate of the opposite vertex.
+   * @param y2 对角顶点的 y 坐标。
+   *           y coordinate of the opposite vertex.
+   */
   void FillRect(Referee::UIFigure& fig, const char* name, Referee::UIFigureOp op,
                 uint8_t layer, Referee::UIColor color, uint16_t width, uint16_t x1,
                 uint16_t y1, uint16_t x2, uint16_t y2)
@@ -1272,6 +1527,29 @@ class Referee
     fig.details_e = y2;
   }
 
+  /**
+   * @brief 生成圆形图形。
+   *        Build a circle figure.
+   *
+   * @param fig 输出的图形。
+   *            Output figure.
+   * @param name 图形名。
+   *             Figure name.
+   * @param op 图形操作。
+   *           Figure operation.
+   * @param layer 图层号。
+   *              Layer number.
+   * @param color 颜色。
+   *              Color.
+   * @param width 线宽。
+   *              Line width.
+   * @param x 圆心 x 坐标。
+   *          Center x coordinate.
+   * @param y 圆心 y 坐标。
+   *          Center y coordinate.
+   * @param radius 半径。
+   *               Radius.
+   */
   void FillCircle(Referee::UIFigure& fig, const char* name, Referee::UIFigureOp op,
                   uint8_t layer, Referee::UIColor color, uint16_t width, uint16_t x,
                   uint16_t y, uint16_t radius)
@@ -1281,6 +1559,31 @@ class Referee
     fig.details_c = radius;
   }
 
+  /**
+   * @brief 生成椭圆图形。
+   *        Build an ellipse figure.
+   *
+   * @param fig 输出的图形。
+   *            Output figure.
+   * @param name 图形名。
+   *             Figure name.
+   * @param op 图形操作。
+   *           Figure operation.
+   * @param layer 图层号。
+   *              Layer number.
+   * @param color 颜色。
+   *              Color.
+   * @param width 线宽。
+   *              Line width.
+   * @param x 圆心 x 坐标。
+   *          Center x coordinate.
+   * @param y 圆心 y 坐标。
+   *          Center y coordinate.
+   * @param x_half_axis x 半轴长。
+   *                    Half axis length along x.
+   * @param y_half_axis y 半轴长。
+   *                    Half axis length along y.
+   */
   void FillEllipse(Referee::UIFigure& fig, const char* name, Referee::UIFigureOp op,
                    uint8_t layer, Referee::UIColor color, uint16_t width, uint16_t x,
                    uint16_t y, uint16_t x_half_axis, uint16_t y_half_axis)
@@ -1291,6 +1594,35 @@ class Referee
     fig.details_e = y_half_axis;
   }
 
+  /**
+   * @brief 生成圆弧图形。
+   *        Build an arc figure.
+   *
+   * @param fig 输出的图形。
+   *            Output figure.
+   * @param name 图形名。
+   *             Figure name.
+   * @param op 图形操作。
+   *           Figure operation.
+   * @param layer 图层号。
+   *              Layer number.
+   * @param color 颜色。
+   *              Color.
+   * @param width 线宽。
+   *              Line width.
+   * @param x 圆心 x 坐标。
+   *          Center x coordinate.
+   * @param y 圆心 y 坐标。
+   *          Center y coordinate.
+   * @param start_angle 起始角度。
+   *                    Start angle.
+   * @param end_angle 终止角度。
+   *                  End angle.
+   * @param x_half_axis x 半轴长。
+   *                    Half axis length along x.
+   * @param y_half_axis y 半轴长。
+   *                    Half axis length along y.
+   */
   void FillArc(Referee::UIFigure& fig, const char* name, Referee::UIFigureOp op,
                uint8_t layer, Referee::UIColor color, uint16_t width, uint16_t x,
                uint16_t y, uint16_t start_angle, uint16_t end_angle, uint16_t x_half_axis,
@@ -1304,6 +1636,32 @@ class Referee
     fig.details_e = y_half_axis;
   }
 
+  /**
+   * @brief 生成浮点数图形，数值乘以 1000 后取整写入。
+   *        Build a floating-point figure; the value is multiplied by 1000 and truncated
+   *        to an integer.
+   *
+   * @param fig 输出的图形。
+   *            Output figure.
+   * @param name 图形名。
+   *             Figure name.
+   * @param op 图形操作。
+   *           Figure operation.
+   * @param layer 图层号。
+   *              Layer number.
+   * @param color 颜色。
+   *              Color.
+   * @param font_size 字号。
+   *                  Font size.
+   * @param width 线宽。
+   *              Line width.
+   * @param x 起点 x 坐标。
+   *          Start x coordinate.
+   * @param y 起点 y 坐标。
+   *          Start y coordinate.
+   * @param value 显示的数值。
+   *              Value to display.
+   */
   void FillFloat(Referee::UIFigure& fig, const char* name, Referee::UIFigureOp op,
                  uint8_t layer, Referee::UIColor color, uint16_t font_size,
                  uint16_t width, uint16_t x, uint16_t y, float value)
@@ -1314,6 +1672,31 @@ class Referee
     SetFigureValue32(fig, static_cast<int32_t>(value * 1000.0f));
   }
 
+  /**
+   * @brief 生成整数图形。
+   *        Build an integer figure.
+   *
+   * @param fig 输出的图形。
+   *            Output figure.
+   * @param name 图形名。
+   *             Figure name.
+   * @param op 图形操作。
+   *           Figure operation.
+   * @param layer 图层号。
+   *              Layer number.
+   * @param color 颜色。
+   *              Color.
+   * @param font_size 字号。
+   *                  Font size.
+   * @param width 线宽。
+   *              Line width.
+   * @param x 起点 x 坐标。
+   *          Start x coordinate.
+   * @param y 起点 y 坐标。
+   *          Start y coordinate.
+   * @param value 显示的数值。
+   *              Value to display.
+   */
   void FillInt(Referee::UIFigure& fig, const char* name, Referee::UIFigureOp op,
                uint8_t layer, Referee::UIColor color, uint16_t font_size, uint16_t width,
                uint16_t x, uint16_t y, int32_t value)
@@ -1324,6 +1707,15 @@ class Referee
     SetFigureValue32(fig, value);
   }
 
+  /**
+   * @brief 由机器人 ID 计算对应的选手端 ID。
+   *        Compute the operator client ID of a robot ID.
+   *
+   * @param robot_id 机器人 ID，大于 100 的为蓝方。
+   *                 Robot ID; IDs above 100 belong to the blue team.
+   * @return 选手端 ID。
+   *         Operator client ID.
+   */
   uint16_t GetClientID(uint16_t robot_id)
   {
     if (robot_id > 100)
@@ -1333,6 +1725,15 @@ class Referee
     return static_cast<uint16_t>(robot_id + 0x0100);
   }
 
+  /**
+   * @brief 写入 3 字节图形名，不足部分以空格填充。
+   *        Write the 3-byte figure name, padding the remainder with spaces.
+   *
+   * @param dst 目标缓冲区。
+   *            Destination buffer.
+   * @param name 图形名，可为 `nullptr`。
+   *             Figure name, may be `nullptr`.
+   */
   static void SetFigureName(uint8_t (&dst)[3], const char* name)
   {
     dst[0] = ' ';
@@ -1348,6 +1749,19 @@ class Referee
     }
   }
 
+  /**
+   * @brief 发送 UI 图层删除（0x0100）。
+   *        Send a UI layer deletion (0x0100).
+   *
+   * @param sender_id 发送者 ID。
+   *                  Sender ID.
+   * @param receiver_id 接收者 ID。
+   *                    Receiver ID.
+   * @param payload 图层删除包。
+   *                Layer deletion packet.
+   * @return 同 `SendFrame`。
+   *         Same as `SendFrame`.
+   */
   LibXR::ErrorCode SendUILayerDelete(uint16_t sender_id, uint16_t receiver_id,
                                      const UILayerDelete& payload)
   {
@@ -1355,6 +1769,19 @@ class Referee
                           payload);
   }
 
+  /**
+   * @brief 发送一个 UI 图形（0x0101）。
+   *        Send one UI figure (0x0101).
+   *
+   * @param sender_id 发送者 ID。
+   *                  Sender ID.
+   * @param receiver_id 接收者 ID。
+   *                    Receiver ID.
+   * @param payload 图形。
+   *                Figure.
+   * @return 同 `SendFrame`。
+   *         Same as `SendFrame`.
+   */
   LibXR::ErrorCode SendUIFigure(uint16_t sender_id, uint16_t receiver_id,
                                 const UIFigure& payload)
   {
@@ -1362,6 +1789,19 @@ class Referee
                           payload);
   }
 
+  /**
+   * @brief 发送两个 UI 图形（0x0102）。
+   *        Send two UI figures (0x0102).
+   *
+   * @param sender_id 发送者 ID。
+   *                  Sender ID.
+   * @param receiver_id 接收者 ID。
+   *                    Receiver ID.
+   * @param payload 两个图形。
+   *                Two figures.
+   * @return 同 `SendFrame`。
+   *         Same as `SendFrame`.
+   */
   LibXR::ErrorCode SendUIFigure2(uint16_t sender_id, uint16_t receiver_id,
                                  const UIFigure2& payload)
   {
@@ -1369,6 +1809,19 @@ class Referee
                           payload);
   }
 
+  /**
+   * @brief 发送五个 UI 图形（0x0103）。
+   *        Send five UI figures (0x0103).
+   *
+   * @param sender_id 发送者 ID。
+   *                  Sender ID.
+   * @param receiver_id 接收者 ID。
+   *                    Receiver ID.
+   * @param payload 五个图形。
+   *                Five figures.
+   * @return 同 `SendFrame`。
+   *         Same as `SendFrame`.
+   */
   LibXR::ErrorCode SendUIFigure5(uint16_t sender_id, uint16_t receiver_id,
                                  const UIFigure5& payload)
   {
@@ -1376,6 +1829,19 @@ class Referee
                           payload);
   }
 
+  /**
+   * @brief 发送七个 UI 图形（0x0104）。
+   *        Send seven UI figures (0x0104).
+   *
+   * @param sender_id 发送者 ID。
+   *                  Sender ID.
+   * @param receiver_id 接收者 ID。
+   *                    Receiver ID.
+   * @param payload 七个图形。
+   *                Seven figures.
+   * @return 同 `SendFrame`。
+   *         Same as `SendFrame`.
+   */
   LibXR::ErrorCode SendUIFigure7(uint16_t sender_id, uint16_t receiver_id,
                                  const UIFigure7& payload)
   {
@@ -1383,6 +1849,19 @@ class Referee
                           payload);
   }
 
+  /**
+   * @brief 发送一个 UI 字符图形（0x0110）。
+   *        Send one UI character figure (0x0110).
+   *
+   * @param sender_id 发送者 ID。
+   *                  Sender ID.
+   * @param receiver_id 接收者 ID。
+   *                    Receiver ID.
+   * @param payload 字符图形。
+   *                Character figure.
+   * @return 同 `SendFrame`。
+   *         Same as `SendFrame`.
+   */
   LibXR::ErrorCode SendUICharacter(uint16_t sender_id, uint16_t receiver_id,
                                    const UICharacter& payload)
   {
@@ -1390,6 +1869,15 @@ class Referee
                           payload);
   }
 
+  /**
+   * @brief 把指定的哨兵决策数据（0x0120）发送给裁判系统服务器。
+   *        Send the given sentry decision data (0x0120) to the referee system server.
+   *
+   * @param payload 哨兵决策数据。
+   *                Sentry decision data.
+   * @return 同 `SendFrame`。
+   *         Same as `SendFrame`.
+   */
   LibXR::ErrorCode SendSentryDecision(const SentryDecisionData& payload)
   {
     return SendStudentCmd(CMDID::REF_STDNT_CMD_ID_SENTRY_CMD, data_.robot_status.robot_id,
@@ -1397,6 +1885,15 @@ class Referee
                           payload);
   }
 
+  /**
+   * @brief 把指定的雷达决策数据（0x0121）发送给裁判系统服务器。
+   *        Send the given radar decision data (0x0121) to the referee system server.
+   *
+   * @param payload 雷达决策数据。
+   *                Radar decision data.
+   * @return 同 `SendFrame`。
+   *         Same as `SendFrame`.
+   */
   LibXR::ErrorCode SendRadarDecision(const RadarDecisionData& payload)
   {
     return SendStudentCmd(CMDID::REF_STDNT_CMD_ID_RADAR_CMD, data_.robot_status.robot_id,
@@ -1404,6 +1901,15 @@ class Referee
                           payload);
   }
 
+  /**
+   * @brief 请求设置图传出图信道（0x0F01）。
+   *        Request setting the video-link output channel (0x0F01).
+   *
+   * @param channel 信道，1~6。
+   *                Channel, 1 to 6.
+   * @return 同 `SendFrame`。
+   *         Same as `SendFrame`.
+   */
   LibXR::ErrorCode SendSetVideoTransChannel(uint8_t channel)
   {
     SetVideoTransChannel payload{};
@@ -1411,24 +1917,53 @@ class Referee
     return SendFrame(CommandID::REF_CMD_ID_SET_VIDEO_TRANS_CH, payload);
   }
 
+  /**
+   * @brief 请求查询当前图传出图信道（0x0F02）。
+   *        Request the current video-link output channel (0x0F02).
+   *
+   * @return 同 `SendFrame`。
+   *         Same as `SendFrame`.
+   */
   LibXR::ErrorCode SendQueryVideoTransChannel()
   {
     return SendFrame(CommandID::REF_CMD_ID_GET_VIDEO_TRANS_CH, nullptr, 0);
   }
 
+  /**
+   * @brief 经图传链路向自定义控制器发送 30 字节数据（0x0309）。
+   *        Send 30 bytes to the custom controller over the video link (0x0309).
+   *
+   * @param payload 自定义数据。
+   *                Custom data.
+   * @return 同 `SendFrame`。
+   *         Same as `SendFrame`.
+   */
   LibXR::ErrorCode SendCustomDataToController(const CustomData1& payload)
   {
     return SendFrame(CommandID::REF_CMD_ID_CUSTOM_RECV_DATA, payload);
   }
 
+  /**
+   * @brief 经图传链路向自定义控制器发送 150 字节数据（0x0310）。
+   *        Send 150 bytes to the custom controller over the video link (0x0310).
+   *
+   * @param payload 自定义数据。
+   *                Custom data.
+   * @return 同 `SendFrame`。
+   *         Same as `SendFrame`.
+   */
   LibXR::ErrorCode SendCustomDataToController(const CustomData2& payload)
   {
     return SendFrame(CommandID::REF_CMD_ID_DATA_TO_CUSTOM_CLIENT, payload);
   }
 
   /**
-   * @brief 线程函数
+   * @brief 线程函数：循环查找包头、解析数据并发布 Topic，每轮休眠 10 ms。
+   *        Thread function: repeatedly find the header, parse the data and publish the
+   *        Topics, sleeping for 10 ms per iteration.
    *
+   * @param ref Referee 实例。
+   *            Referee instance.
    */
   static void ThreadFunc(Referee* ref)
   {
@@ -1442,8 +1977,9 @@ class Referee
   }
 
   /**
-   * @brief 寻找包头的函数，含阻塞
-   *
+   * @brief 读取串口直到收到校验通过的包头，读取串口失败时将状态置为 `OFFLINE`。
+   *        Read the UART until a header with a valid CRC8 is received; a failed UART read
+   *        sets the status to `OFFLINE`.
    */
   void FindHeader()
   {
@@ -1475,10 +2011,15 @@ class Referee
   }
 
   /**
-   * @brief 解析包数据的函数
+   * @brief 读取并解析包头之后的数据，校验 CRC16 并复制到数据集。
+   *        Read and parse the data after the header, verify the CRC16 and copy it into
+   *        the data set.
    *
-   * @return true 成功解析
-   * @return false
+   * @return 成功解析时为 true；数据超出缓冲区、读取失败、校验失败、
+   *         命令码未知或数据段过短时为 false。
+   *         True when the frame was parsed; false when the data exceeds the buffer, the
+   *         read or the checksum fails, the command ID is unknown or the data segment is
+   *         too short.
    */
   bool ParseData()
   {
@@ -1917,9 +2458,12 @@ class Referee
   }
 
   /**
-   * @brief 把图传链路的遥控数据传给CMD
+   * @brief 把图传链路的键鼠数据转换后交给 CMD；`cmd_` 为 `nullptr` 时不处理。
+   *        Convert the video-link keyboard and mouse data and feed it to CMD; nothing
+   *        happens when `cmd_` is `nullptr`.
    *
-   * @param rc
+   * @param rc 键鼠遥控数据。
+   *           Keyboard and mouse remote data.
    */
   void FeedVideoLinkRemoteToCMD(const KeyboardMouse& rc)
   {
@@ -1967,8 +2511,9 @@ class Referee
   }
 
   /**
-   * @brief 广播数据的函数
-   *
+   * @brief 上一次解析成功时，发布底盘、发射与比赛摘要 Topic 并更新雷达数据包。
+   *        When the last parse succeeded, publish the chassis, launcher and game summary
+   *        Topics and update the radar data packet.
    */
   void Publish()
   {
