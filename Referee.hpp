@@ -1,21 +1,10 @@
-/**
- * @file Referee.hpp
- * @author w (2055498415@qq.com)
- * @brief
- * @version 0.1
- * @date 2026-01-25
- *
- * @copyright Copyright (c) 2026
- *
- */
-
 #pragma once
 
 #include <memory>
 
 // clang-format off
 /* === MODULE MANIFEST V2 ===
-module_description: RM_Referee_2025
+module_description: RoboMaster 裁判系统（2025 协议）串口收发模块：解析数据并发布 Topic，发送客户端 UI 与哨兵、雷达决策 / RoboMaster referee system (2025 protocol) UART Module that parses data, publishes Topics and sends client UI and sentry and radar decisions
 depends:
 - id: QDU-Robomaster/CMD
   ref: same-or-dev
@@ -114,7 +103,7 @@ class Referee
   };
 
   /**
-   * @brief 裁判系统的状态(可能会用到吧)
+   * @brief 裁判系统链路状态
    *
    */
   enum class Status : uint8_t
@@ -139,7 +128,7 @@ class Referee
     REF_CMD_ID_POWER_HEAT_DATA = 0x0202,       /* 实时底盘缓冲能量和射击热量, 10Hz */
     REF_CMD_ID_ROBOT_POS = 0x0203,             /* 机器人位置数据, 1Hz */
     REF_CMD_ID_ROBOT_BUFF = 0x0204,            /* 机器人增益和底盘能量数据, 3Hz */
-    REF_CMD_ID_DRONE_ENERGY = 0x0205,          /* 老💡的宝贝，不知道是啥 */
+    REF_CMD_ID_DRONE_ENERGY = 0x0205,          /* 空中机器人能量状态数据 */
     REF_CMD_ID_ROBOT_DMG = 0x0206,             /* 伤害状态数据，伤害发生后发送 */
     REF_CMD_ID_LAUNCHER_DATA = 0x0207,         /* 实时射击数据，弹丸发射后发送 */
     REF_CMD_ID_BULLET_REMAINING = 0x0208,      /* 允许发弹量, 10Hz */
@@ -998,7 +987,6 @@ class Referee
    */
   struct [[gnu::packed]] RadarPack
   {
-    /* TODO: 待更新 */
     Referee::RobotPosForSentry rf; /* 地面机器人位置数据 */
     float x;                       /* 本机器人位置x坐标，单位m */
     float y;                       /* 本机器人位置y坐标，单位m */
@@ -1018,7 +1006,7 @@ class Referee
   /**
    * @brief 哨兵机器人是否确认复活
    *
-   * @param revival 是否整活
+   * @param revival 是否确认复活
    */
   void SetConfirmRevival(bool revival)
   {
@@ -1051,7 +1039,7 @@ class Referee
   /**
    * @brief 远程买活
    *
-   * @param 是否整活
+   * @param revival 是否兑换立即复活
    */
   void SetRevivalRemote(bool revival)
   {
@@ -1172,7 +1160,6 @@ class Referee
     LibXR::Memory::FastCopy(&tx_buf_[offset], &header, sizeof(header));
     offset += sizeof(header);
 
-    // const uint16_t cmd_u16 = static_cast<uint16_t>(cmd_id);
     tx_buf_[offset++] = static_cast<uint8_t>(static_cast<uint16_t>(cmd_id) & 0xFF);
     tx_buf_[offset++] = static_cast<uint8_t>((static_cast<uint16_t>(cmd_id) >> 8) & 0xFF);
 
@@ -1450,7 +1437,6 @@ class Referee
       ref->FindHeader();
       ref->last_parse_ = ref->ParseData();
       ref->Publish();
-      // ref->uart_->Write(0b01010101, ref->op_);
       LibXR::Thread::Sleep(10);
     }
   }
@@ -1463,7 +1449,6 @@ class Referee
   {
     while (1)
     {
-      /* 防编译器warning */
       if (this->uart_->Read({&this->byte_, 1}, this->op_) == LibXR::ErrorCode::OK)
       {
         if (this->byte_ != 0xA5)
@@ -1637,7 +1622,7 @@ class Referee
 
       case CommandID::REF_CMD_ID_DRONE_ENERGY:
       {
-        /* 0x0205, 老💡的宝贝，不知道是啥 */
+        /* 0x0205, 空中机器人能量状态数据，不保存 */
         break;
       }
 
@@ -2012,7 +1997,6 @@ class Referee
     this->robot_game_referee_pack_.robot_pos = this->data_.robot_pos;
     this->robot_game_referee_topic_.Publish(this->robot_game_referee_pack_);
     UpdateRadarPack();
-    // this->radar_pack_topic_.Publish(this->radar_pack_);
   }
 
  private:
