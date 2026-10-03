@@ -1182,25 +1182,28 @@ class Referee
    * @param param 构造参数。
    *              Construction parameters.
    */
-  Referee(
-      LibXR::UART& uart,
-      CMD* cmd,
-      const Param& param = {.task_stack_depth_uart = 2048, .baudrate = 115200, .referee_chassis_tp_name = "chassis_ref", .referee_launcher_tp_name = "launcher_ref", .referee_robot_game_tp_name = "robot_game_ref", .referee_radar_tp_name = "radar_ref", .thread_priority_uart = LibXR::Thread::Priority::LOW})
-
+  Referee(LibXR::UART& uart, CMD* cmd,
+          const Param& param = {.task_stack_depth_uart = 2048,
+                                .baudrate = 115200,
+                                .referee_chassis_tp_name = "chassis_ref",
+                                .referee_launcher_tp_name = "launcher_ref",
+                                .referee_robot_game_tp_name = "robot_game_ref",
+                                .referee_radar_tp_name = "radar_ref",
+                                .thread_priority_uart = LibXR::Thread::Priority::LOW})
       : uart_(std::addressof(uart)),
         sem_(0),
         op_(sem_, 5000),
         sem_tx_(),
         tx_op_(sem_tx_, 5000),
         cmd_(cmd),
-        chassispack_topic_(LibXR::Topic::CreateTopic<ChassisPack>(param.referee_chassis_tp_name,
-                                                                  nullptr, true)),
+        chassispack_topic_(LibXR::Topic::CreateTopic<ChassisPack>(
+            param.referee_chassis_tp_name, nullptr, true)),
         launcherpack_topic_(LibXR::Topic::CreateTopic<LauncherPack>(
             param.referee_launcher_tp_name, nullptr, true)),
         robot_game_referee_topic_(LibXR::Topic::CreateTopic<RobotGameRefereePack>(
             param.referee_robot_game_tp_name, nullptr, true)),
-        radar_pack_topic_(
-            LibXR::Topic::CreateTopic<RadarPack>(param.referee_radar_tp_name, nullptr, true))
+        radar_pack_topic_(LibXR::Topic::CreateTopic<RadarPack>(
+            param.referee_radar_tp_name, nullptr, true))
   {
     uart_->SetConfig({param.baudrate, LibXR::UART::Parity::NO_PARITY, 8, 1});
 
