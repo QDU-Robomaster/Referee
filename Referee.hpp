@@ -1189,7 +1189,7 @@ class Referee
                                 .referee_launcher_tp_name = "launcher_ref",
                                 .referee_robot_game_tp_name = "robot_game_ref",
                                 .referee_radar_tp_name = "radar_ref",
-                                .thread_priority_uart = LibXR::Thread::Priority::LOW})
+                                .thread_priority_uart = LibXR::Thread::Priority::MEDIUM})
       : uart_(std::addressof(uart)),
         sem_(0),
         op_(sem_, 5000),

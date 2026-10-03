@@ -67,7 +67,7 @@ Referee(LibXR::UART& uart,
 - `referee_launcher_tp_name`：发射 Topic 名称，默认 `"launcher_ref"`。
 - `referee_robot_game_tp_name`：摘要 Topic 名称，默认 `"robot_game_ref"`。
 - `referee_radar_tp_name`：雷达 Topic 名称，默认 `"radar_ref"`。
-- `thread_priority_uart`：线程优先级，默认 `LibXR::Thread::Priority::LOW`。
+- `thread_priority_uart`：线程优先级，默认 `LibXR::Thread::Priority::MEDIUM`。
 
 Dependencies:
 
@@ -82,7 +82,7 @@ Configuration parameters (`Param`):
 - `referee_launcher_tp_name`: launcher Topic name, default `"launcher_ref"`.
 - `referee_robot_game_tp_name`: summary Topic name, default `"robot_game_ref"`.
 - `referee_radar_tp_name`: radar Topic name, default `"radar_ref"`.
-- `thread_priority_uart`: thread priority, default `LibXR::Thread::Priority::LOW`.
+- `thread_priority_uart`: thread priority, default `LibXR::Thread::Priority::MEDIUM`.
 
 ## 4. Topic
 
@@ -122,7 +122,7 @@ modules:
           referee_launcher_tp_name: "launcher_ref"
           referee_robot_game_tp_name: "robot_game_ref"
           referee_radar_tp_name: "radar_ref"
-          thread_priority_uart: LibXR::Thread::Priority::LOW
+          thread_priority_uart: LibXR::Thread::Priority::MEDIUM
 ```
 
 在构造时订阅 Referee Topic 的模块（例如 `QDU-Robomaster/SuperPower`、`QDU-Robomaster/SentryProtocol`）的实例列在本实例之后。
