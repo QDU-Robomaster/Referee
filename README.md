@@ -93,6 +93,7 @@ Configuration parameters (`Param`):
 | `chassis_ref` | 发布 | `Referee::ChassisPack` | `RobotStatus`（等级、功率上限等）与底盘缓冲能量（J） |
 | `launcher_ref` | 发布 | `Referee::LauncherPack` | `RobotStatus`、`RobotBuff`、`LauncherData`、`DartClient`、`PowerHeat` |
 | `robot_game_ref` | 发布 | `Referee::RobotGameRefereePack` | 机器人状态、比赛状态、哨兵信息、RFID、17 mm 允许发弹量、前哨站与基地血量、机器人位置 |
+| `radar_ref` | 创建 | `Referee::RadarPack` | 地面机器人位置与本机位置（x、y，单位 m） |
 
 All Topics are multi-publisher Topics with configurable names.
 
@@ -101,6 +102,7 @@ All Topics are multi-publisher Topics with configurable names.
 | `chassis_ref` | Publish | `Referee::ChassisPack` | `RobotStatus` (level, power limit, ...) and chassis power buffer (J) |
 | `launcher_ref` | Publish | `Referee::LauncherPack` | `RobotStatus`, `RobotBuff`, `LauncherData`, `DartClient`, `PowerHeat` |
 | `robot_game_ref` | Publish | `Referee::RobotGameRefereePack` | Robot status, game status, sentry info, RFID, 17 mm allowance, outpost and base HP, robot positions |
+| `radar_ref` | Create | `Referee::RadarPack` | Ground robot positions and the position of this robot (x, y in m) |
 
 ## 5. 配置示例 / Configuration Example
 
