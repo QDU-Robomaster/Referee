@@ -483,43 +483,19 @@ class Referee
    * @brief 0x0204 机器人增益和底盘能量数据，3 Hz。
    *        0x0204 robot buff and chassis energy data, 3 Hz.
    */
-  struct [[gnu::packed]] RobotBuff
-  {
-    uint8_t healing_buff;                  /*机器人回血增益,百分比*/
-    uint16_t cooling_acc;                  /*机器人射击热量冷却增益 单位是s^{-1}*/
-    uint8_t defense_buff;                  /*机器人防御增益 百分比*/
-    uint8_t vulnerability_buff;            /*机器人负防御增益 百分比*/
-    uint16_t attack_buff;                  /*机器人攻击增益 百分比*/
-    uint8_t percent_125_remain_energy : 1; /* 在剩余能量≥125%时为 1 */
-    uint8_t percent_100_remain_energy : 1; /* 在剩余能量≥100%时为 1 */
-    uint8_t percent_50_remain_energy : 1;  /* 在剩余能量≥50%时为 1 */
-    uint8_t percent_30_remain_energy : 1;  /* 在剩余能量≥30%时为 1 */
-    uint8_t percent_15_remain_energy : 1;  /* 在剩余能量≥15%时为 1 */
-    uint8_t percent_5_remain_energy : 1;   /* 在剩余能量≥5%时为 1 */
-    uint8_t percent_1_remain_energy : 1;   /* 在剩余能量≥1%时为 1 */
-  };
+  using RobotBuff = RefereeTypes::RobotBuff;
 
   /**
    * @brief 0x0206 伤害状态数据，伤害发生后发送。
    *        0x0206 damage data, sent after damage occurs.
    */
-  struct [[gnu::packed]] RobotDamage
-  {
-    uint8_t armor_id : 4;    /* 受击打的装甲板id */
-    uint8_t damage_type : 4; /* 血量变化类型 */
-  };
+  using RobotDamage = RefereeTypes::RobotDamage;
 
   /**
    * @brief 0x0207 实时射击数据，弹丸发射后发送。
    *        0x0207 real-time shooting data, sent after a projectile is fired.
    */
-  struct [[gnu::packed]] LauncherData
-  {
-    uint8_t bullet_type;   /* 弹丸类型 */
-    uint8_t launcherer_id; /* 发射机构 ID */
-    uint8_t bullet_freq;   /* 弹丸射速 Hz */
-    float bullet_speed;    /* 弹丸初速度 m/s */
-  };
+  using LauncherData = RefereeTypes::LauncherData;
 
   /**
    * @brief 0x0208 允许发弹量，10 Hz。
@@ -561,19 +537,7 @@ class Referee
    * @brief 0x020C 雷达标记进度数据，1 Hz。
    *        0x020C radar marking progress data, 1 Hz.
    */
-  struct [[gnu::packed]] RadarMarkProgress
-  {
-    uint8_t mark_enemy_hero_state : 1;       /*对方 1 号英雄机器人易伤情况*/
-    uint8_t mark_enemy_engineer_state : 1;   /*对方 2 号工程机器人易伤情况*/
-    uint8_t mark_enemy_standard_3_state : 1; /*对方 3 号步兵机器人易伤情况*/
-    uint8_t mark_enemy_standard_4_state : 1; /*对方 4 号步兵机器人易伤情况*/
-    uint8_t mark_enemy_sentry_state : 1;     /*对方哨兵机器人易伤情况*/
-    uint8_t mark_own_hero_state : 1;         /*己方 1 号英雄机器人特殊标识情况*/
-    uint8_t mark_own_engineer_state : 1;     /*己方 2 号工程机器人特殊标识情况*/
-    uint8_t mark_own_standard_3_state : 1;   /*己方 3 号步兵机器人特殊标识情况*/
-    uint8_t mark_own_standard_4_state : 1;   /*己方 4 号步兵机器人特殊标识情况*/
-    uint8_t mark_own_sentry_state : 1;       /*己方哨兵机器人特殊标识情况*/
-  };
+  using RadarMarkProgress = RefereeTypes::RadarMarkProgress;
 
   /**
    * @brief 0x020D 哨兵自主决策相关信息同步，1 Hz。
@@ -2177,6 +2141,7 @@ class Referee
         {
           return false;
         }
+        ++this->hurt_seq_;
         break;
       }
 
@@ -2187,6 +2152,7 @@ class Referee
         {
           return false;
         }
+        ++this->shot_seq_;
         break;
       }
 
@@ -2543,6 +2509,15 @@ class Referee
     this->robot_game_referee_pack_.red_base = this->data_.game_robot_hp.red_base;
     this->robot_game_referee_pack_.sentry_pos = this->data_.sentry_pos;
     this->robot_game_referee_pack_.robot_pos = this->data_.robot_pos;
+    this->robot_game_referee_pack_.launcher_17_heat =
+        this->data_.power_heat.launcher_id1_17_heat;
+    this->robot_game_referee_pack_.launcher_42_heat = this->data_.power_heat.launcher_42_heat;
+    this->robot_game_referee_pack_.launcher_data = this->data_.launcher_data;
+    this->robot_game_referee_pack_.shot_seq = this->shot_seq_;
+    this->robot_game_referee_pack_.robot_buff = this->data_.robot_buff;
+    this->robot_game_referee_pack_.radar_mark = this->data_.radar_mark_progress;
+    this->robot_game_referee_pack_.robot_damage = this->data_.robot_damage;
+    this->robot_game_referee_pack_.hurt_seq = this->hurt_seq_;
     this->robot_game_referee_topic_.Publish(this->robot_game_referee_pack_);
     UpdateRadarPack();
   }
@@ -2582,6 +2557,8 @@ class Referee
   LauncherPack lp_; /* 发给发射的数据包缓冲 */
   LibXR::Topic robot_game_referee_topic_;
   RobotGameRefereePack robot_game_referee_pack_; /* 裁判系统摘要包缓冲 */
+  uint16_t shot_seq_ = 0;                        /* 已收到的 0x0207 帧数 */
+  uint8_t hurt_seq_ = 0;                         /* 已收到的 0x0206 帧数 */
   LibXR::Topic radar_pack_topic_;
   RadarPack radar_pack_;
 

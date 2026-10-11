@@ -38,11 +38,41 @@ Sending: every frame carries a header CRC8, a frame CRC16 and a sequence number,
 
 ## 2. 共享消息类型 / Shared Message Types
 
-`RefereeTypes.hpp` 提供生产者拥有的 `RobotGameRefereePack` 及其组成类型（`GameStatus`、`RobotStatus`、`RobotPOS`、`RFID`、`RobotPosForSentry`、`SentryInfo`），包含 `<cstdint>`，主机端的订阅者可直接包含该头文件。`Referee::RobotGameRefereePack` 与 `Referee` 内的同名组成类型是这些类型的别名，紧凑布局共 92 字节。
+`RefereeTypes.hpp` 提供生产者拥有的 `RobotGameRefereePack` 及其组成类型（`GameStatus`、`RobotStatus`、`RobotPOS`、`RFID`、`RobotPosForSentry`、`SentryInfo`、`RobotBuff`、`RobotDamage`、`LauncherData`、`RadarMarkProgress`），包含 `<cstdint>`，主机端的订阅者可直接包含该头文件。`Referee::RobotGameRefereePack` 与 `Referee` 内的同名组成类型是这些类型的别名，紧凑布局共 117 字节。
+
+摘要的前 92 字节依次为机器人状态、比赛状态、哨兵信息、RFID、17 mm 允许发弹量、前哨站与基地血量、地面机器人位置和本机位置；其后追加：
+
+| 偏移 | 字段 | 来源 | 内容 |
+| --- | --- | --- | --- |
+| 92 | `launcher_17_heat` | 0x0202 | 17 mm 发射机构的射击热量 |
+| 94 | `launcher_42_heat` | 0x0202 | 42 mm 发射机构的射击热量 |
+| 96 | `launcher_data` | 0x0207 | 最近一发的弹丸类型、发射机构 ID、射频与初速度 |
+| 103 | `shot_seq` | 0x0207 | 收到的 0x0207 帧数，每帧加 1，`uint16_t` 回绕 |
+| 105 | `robot_buff` | 0x0204 | 回血、冷却、防御、负防御、攻击增益与剩余能量 |
+| 113 | `radar_mark` | 0x020C | 雷达标记进度 |
+| 115 | `robot_damage` | 0x0206 | 最近一次扣血的装甲 ID 与血量变化类型 |
+| 116 | `hurt_seq` | 0x0206 | 收到的 0x0206 帧数，每帧加 1，`uint8_t` 回绕 |
+
+各字段保存对应命令码最近一次解析的数据段，未收到时为 0。订阅者比较相邻两包的 `shot_seq` 或 `hurt_seq` 判断其间是否有新的射击或扣血事件；摘要不带时间戳，接收时刻由订阅者记录。
 
 在构建中启用 `BUILD_TESTING` 后，目标 `referee_types_test` 在编译期检查 `RobotGameRefereePack` 的大小与字段偏移，运行方式为 `ctest -R referee_types_test`。
 
-`RefereeTypes.hpp` provides the producer-owned `RobotGameRefereePack` and its component types (`GameStatus`, `RobotStatus`, `RobotPOS`, `RFID`, `RobotPosForSentry`, `SentryInfo`). It includes `<cstdint>`, so host-side subscribers can include the header directly. `Referee::RobotGameRefereePack` and the component types of the same names inside `Referee` are aliases of these types; the packed layout is 92 bytes.
+`RefereeTypes.hpp` provides the producer-owned `RobotGameRefereePack` and its component types (`GameStatus`, `RobotStatus`, `RobotPOS`, `RFID`, `RobotPosForSentry`, `SentryInfo`, `RobotBuff`, `RobotDamage`, `LauncherData`, `RadarMarkProgress`). It includes `<cstdint>`, so host-side subscribers can include the header directly. `Referee::RobotGameRefereePack` and the component types of the same names inside `Referee` are aliases of these types; the packed layout is 117 bytes.
+
+The first 92 bytes of the summary are the robot status, game status, sentry info, RFID, 17 mm allowance, outpost and base HP, ground robot positions and the position of this robot; the following fields are appended after them:
+
+| Offset | Field | Source | Content |
+| --- | --- | --- | --- |
+| 92 | `launcher_17_heat` | 0x0202 | Shooting heat of the 17 mm launcher |
+| 94 | `launcher_42_heat` | 0x0202 | Shooting heat of the 42 mm launcher |
+| 96 | `launcher_data` | 0x0207 | Projectile type, launcher ID, fire rate and initial speed of the latest shot |
+| 103 | `shot_seq` | 0x0207 | Number of 0x0207 frames received, incremented per frame, wraps as `uint16_t` |
+| 105 | `robot_buff` | 0x0204 | Healing, cooling, defense, vulnerability and attack buffs and the remaining energy |
+| 113 | `radar_mark` | 0x020C | Radar marking progress |
+| 115 | `robot_damage` | 0x0206 | Armor ID and HP change type of the latest HP deduction |
+| 116 | `hurt_seq` | 0x0206 | Number of 0x0206 frames received, incremented per frame, wraps as `uint8_t` |
+
+Each field holds the data segment of the latest parsed frame of its command ID and is 0 until one is received. A subscriber compares `shot_seq` or `hurt_seq` of two consecutive packets to tell whether a shot or an HP deduction happened in between; the summary carries no timestamp, and the subscriber records the arrival time.
 
 With `BUILD_TESTING` enabled in the build, the target `referee_types_test` checks the size and field offsets of `RobotGameRefereePack` at compile time; it is run with `ctest -R referee_types_test`.
 
@@ -92,7 +122,7 @@ Configuration parameters (`Param`):
 | --- | --- | --- | --- |
 | `chassis_ref` | 发布 | `Referee::ChassisPack` | `RobotStatus`（等级、功率上限等）与底盘缓冲能量（J） |
 | `launcher_ref` | 发布 | `Referee::LauncherPack` | `RobotStatus`、`RobotBuff`、`LauncherData`、`DartClient`、`PowerHeat` |
-| `robot_game_ref` | 发布 | `Referee::RobotGameRefereePack` | 机器人状态、比赛状态、哨兵信息、RFID、17 mm 允许发弹量、前哨站与基地血量、机器人位置 |
+| `robot_game_ref` | 发布 | `Referee::RobotGameRefereePack` | 机器人状态、比赛状态、哨兵信息、RFID、17 mm 允许发弹量、前哨站与基地血量、机器人位置、射击热量、最近一发射击数据、增益、雷达标记进度、最近一次伤害数据 |
 | `radar_ref` | 创建 | `Referee::RadarPack` | 地面机器人位置与本机位置（x、y，单位 m） |
 
 All Topics are multi-publisher Topics with configurable names.
@@ -101,7 +131,7 @@ All Topics are multi-publisher Topics with configurable names.
 | --- | --- | --- | --- |
 | `chassis_ref` | Publish | `Referee::ChassisPack` | `RobotStatus` (level, power limit, ...) and chassis power buffer (J) |
 | `launcher_ref` | Publish | `Referee::LauncherPack` | `RobotStatus`, `RobotBuff`, `LauncherData`, `DartClient`, `PowerHeat` |
-| `robot_game_ref` | Publish | `Referee::RobotGameRefereePack` | Robot status, game status, sentry info, RFID, 17 mm allowance, outpost and base HP, robot positions |
+| `robot_game_ref` | Publish | `Referee::RobotGameRefereePack` | Robot status, game status, sentry info, RFID, 17 mm allowance, outpost and base HP, robot positions, shooting heat, data of the latest shot, buffs, radar marking progress, data of the latest damage |
 | `radar_ref` | Create | `Referee::RadarPack` | Ground robot positions and the position of this robot (x, y in m) |
 
 ## 5. 配置示例 / Configuration Example

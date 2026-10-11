@@ -130,8 +130,71 @@ struct [[gnu::packed]] SentryInfo
 };
 
 /**
- * @brief 机器人、比赛与发射相关的裁判系统摘要，紧凑布局共 92 字节。
- *        Referee summary of robot, game and launcher data, 92 bytes in packed layout.
+ * @brief 0x0204 机器人增益和底盘能量数据。
+ *        0x0204 robot buff and chassis energy data.
+ */
+struct [[gnu::packed]] RobotBuff
+{
+  uint8_t healing_buff;                  /*机器人回血增益,百分比*/
+  uint16_t cooling_acc;                  /*机器人射击热量冷却增益 单位是s^{-1}*/
+  uint8_t defense_buff;                  /*机器人防御增益 百分比*/
+  uint8_t vulnerability_buff;            /*机器人负防御增益 百分比*/
+  uint16_t attack_buff;                  /*机器人攻击增益 百分比*/
+  uint8_t percent_125_remain_energy : 1; /* 在剩余能量≥125%时为 1 */
+  uint8_t percent_100_remain_energy : 1; /* 在剩余能量≥100%时为 1 */
+  uint8_t percent_50_remain_energy : 1;  /* 在剩余能量≥50%时为 1 */
+  uint8_t percent_30_remain_energy : 1;  /* 在剩余能量≥30%时为 1 */
+  uint8_t percent_15_remain_energy : 1;  /* 在剩余能量≥15%时为 1 */
+  uint8_t percent_5_remain_energy : 1;   /* 在剩余能量≥5%时为 1 */
+  uint8_t percent_1_remain_energy : 1;   /* 在剩余能量≥1%时为 1 */
+};
+
+/**
+ * @brief 0x0206 伤害状态数据。
+ *        0x0206 damage data.
+ */
+struct [[gnu::packed]] RobotDamage
+{
+  uint8_t armor_id : 4;    /* 受击打的装甲板id */
+  uint8_t damage_type : 4; /* 血量变化类型 */
+};
+
+/**
+ * @brief 0x0207 实时射击数据。
+ *        0x0207 real-time shooting data.
+ */
+struct [[gnu::packed]] LauncherData
+{
+  uint8_t bullet_type;   /* 弹丸类型 */
+  uint8_t launcherer_id; /* 发射机构 ID */
+  uint8_t bullet_freq;   /* 弹丸射速 Hz */
+  float bullet_speed;    /* 弹丸初速度 m/s */
+};
+
+/**
+ * @brief 0x020C 雷达标记进度数据。
+ *        0x020C radar marking progress data.
+ */
+struct [[gnu::packed]] RadarMarkProgress
+{
+  uint8_t mark_enemy_hero_state : 1;       /*对方 1 号英雄机器人易伤情况*/
+  uint8_t mark_enemy_engineer_state : 1;   /*对方 2 号工程机器人易伤情况*/
+  uint8_t mark_enemy_standard_3_state : 1; /*对方 3 号步兵机器人易伤情况*/
+  uint8_t mark_enemy_standard_4_state : 1; /*对方 4 号步兵机器人易伤情况*/
+  uint8_t mark_enemy_sentry_state : 1;     /*对方哨兵机器人易伤情况*/
+  uint8_t mark_own_hero_state : 1;         /*己方 1 号英雄机器人特殊标识情况*/
+  uint8_t mark_own_engineer_state : 1;     /*己方 2 号工程机器人特殊标识情况*/
+  uint8_t mark_own_standard_3_state : 1;   /*己方 3 号步兵机器人特殊标识情况*/
+  uint8_t mark_own_standard_4_state : 1;   /*己方 4 号步兵机器人特殊标识情况*/
+  uint8_t mark_own_sentry_state : 1;       /*己方哨兵机器人特殊标识情况*/
+};
+
+/**
+ * @brief 机器人、比赛与发射相关的裁判系统摘要，紧凑布局共 117 字节。
+ *        Referee summary of robot, game and launcher data, 117 bytes in packed layout.
+ *
+ * 前 92 字节的布局保持不变，之后的字段依次追加在末尾。
+ * The layout of the first 92 bytes is unchanged; later fields are appended at the end.
  */
 struct [[gnu::packed]] RobotGameRefereePack
 {
@@ -144,5 +207,13 @@ struct [[gnu::packed]] RobotGameRefereePack
   uint16_t red_base;            /* 己方基地 */
   RobotPosForSentry sentry_pos; /* 0x020B */
   RobotPOS robot_pos;
+  uint16_t launcher_17_heat;    /* 0x0202 17mm 发射机构的射击热量 */
+  uint16_t launcher_42_heat;    /* 0x0202 42mm 发射机构的射击热量 */
+  LauncherData launcher_data;   /* 0x0207 最近一发的射击数据 */
+  uint16_t shot_seq;            /* 0x0207 计数，每收到一帧加 1 */
+  RobotBuff robot_buff;         /* 0x0204 */
+  RadarMarkProgress radar_mark; /* 0x020C */
+  RobotDamage robot_damage;     /* 0x0206 最近一次的伤害数据 */
+  uint8_t hurt_seq;             /* 0x0206 计数，每收到一帧加 1 */
 };
 }  // namespace RefereeTypes
