@@ -1,15 +1,15 @@
 # Referee
 
-RoboMaster 裁判系统（2025 协议）串口收发模块：解析数据并发布 Topic，发送客户端 UI 与哨兵、雷达决策 / RoboMaster referee system (2025 protocol) UART Module that parses data, publishes Topics and sends client UI and sentry and radar decisions
+RoboMaster 裁判系统（2027 V1.0.0 协议）串口收发模块：解析数据并发布 Topic，发送客户端 UI 与哨兵、雷达决策 / RoboMaster referee system (2027 V1.0.0 protocol) UART Module that parses data, publishes Topics and sends client UI and sentry and radar decisions
 
 ## 1. 模块作用 / Purpose
 
 构造时，Referee 按 `baudrate` 配置串口（8N1），创建输出 Topic，并启动线程 `Referee`（栈深 `task_stack_depth_uart`，优先级 `thread_priority_uart`）。线程循环执行：
 
 1. 逐字节读取到起始字节 `0xA5`，读取其余包头并校验 CRC8。串口读取失败时链路状态置为 `OFFLINE`，收到有效包头时置为 `RUNNING`。
-2. 读取命令码、数据段与帧尾，校验帧 CRC16，把数据段复制到内部数据集的对应字段：0x0001–0x0310 为机器人与比赛数据，0x0A01–0x0A06 为雷达链路数据，0x0F01 / 0x0F02 为图传信道应答。命令码未知或数据段长度不足的帧被丢弃。
+2. 读取命令码、数据段与帧尾，校验帧 CRC16，把数据段复制到内部数据集的对应字段：0x0001–0x0311 为机器人与比赛数据，0x0A01–0x0A06 为雷达链路数据，0x0F01 / 0x0F02 为图传信道应答。命令码未知或固定数据段长度不匹配的帧被丢弃；0x0301、0x0310、0x0311 按各自上限检查可变长度。
 3. 帧解析成功后发布下文的 Topic。
-4. 休眠 10 ms。
+4. 休眠 1 ms。
 
 当 `cmd` 不为空时，来自图传链路的键鼠数据（0x0304）经单参数的 `CMD::FeedRC()` 以 DR16 输入源（`RC_INPUT_DR16`）写入 CMD，与 `QDU-Robomaster/DR16` 使用同一个输入槽：W / A / S / D 设置底盘 x / y 指令为 ±0.5（按住 Shift 时加倍），鼠标 x / y 位移取反后乘以 1000/32768，作为云台 yaw / pitch 指令，左键开火，控制源为 `CTRL_SOURCE_RC`。`cmd` 为 `nullptr` 时不转发，之后可用 `BindCMD(CMD&)` 绑定。
 
@@ -23,9 +23,9 @@ RoboMaster 裁判系统（2025 协议）串口收发模块：解析数据并发�
 At construction, Referee configures the UART with `baudrate` (8N1), creates the output Topics and starts the thread `Referee` (stack depth `task_stack_depth_uart`, priority `thread_priority_uart`). The thread loops:
 
 1. Read byte by byte up to the start byte `0xA5`, read the rest of the header and verify its CRC8. A failed UART read sets the link status to `OFFLINE`; a valid header sets it to `RUNNING`.
-2. Read the command ID, data segment and frame tail, verify the frame CRC16 and copy the data segment into the matching field of the internal data set: 0x0001–0x0310 are robot and game data, 0x0A01–0x0A06 are radar link data, 0x0F01 / 0x0F02 are video channel replies. Frames with an unknown command ID or a short data segment are dropped.
+2. Read the command ID, data segment and frame tail, verify the frame CRC16 and copy the data segment into the matching field of the internal data set: 0x0001–0x0311 are robot and game data, 0x0A01–0x0A06 are radar link data, 0x0F01 / 0x0F02 are video channel replies. Unknown commands and incorrect fixed payload sizes are rejected. Variable payloads 0x0301, 0x0310 and 0x0311 are bounded separately.
 3. After a frame is parsed, publish the Topics listed below.
-4. Sleep for 10 ms.
+4. Sleep for 1 ms.
 
 When `cmd` is not null, keyboard and mouse data from the video link (0x0304) is written to CMD through the single-argument `CMD::FeedRC()` with the DR16 input source (`RC_INPUT_DR16`), the same input slot that `QDU-Robomaster/DR16` uses: W / A / S / D set the chassis x / y command to ±0.5 (doubled while Shift is held), the mouse x / y displacement is negated and multiplied by 1000/32768 to give the gimbal yaw / pitch command, the left button fires, and the control source is `CTRL_SOURCE_RC`. With `cmd` set to `nullptr` nothing is forwarded; `BindCMD(CMD&)` can bind one later.
 
@@ -38,41 +38,11 @@ Sending: every frame carries a header CRC8, a frame CRC16 and a sequence number,
 
 ## 2. 共享消息类型 / Shared Message Types
 
-`RefereeTypes.hpp` 提供生产者拥有的 `RobotGameRefereePack` 及其组成类型（`GameStatus`、`RobotStatus`、`RobotPOS`、`RFID`、`RobotPosForSentry`、`SentryInfo`、`RobotBuff`、`RobotDamage`、`LauncherData`、`RadarMarkProgress`），包含 `<cstdint>`，主机端的订阅者可直接包含该头文件。`Referee::RobotGameRefereePack` 与 `Referee` 内的同名组成类型是这些类型的别名，紧凑布局共 117 字节。
-
-摘要的前 92 字节依次为机器人状态、比赛状态、哨兵信息、RFID、17 mm 允许发弹量、前哨站与基地血量、地面机器人位置和本机位置；其后追加：
-
-| 偏移 | 字段 | 来源 | 内容 |
-| --- | --- | --- | --- |
-| 92 | `launcher_17_heat` | 0x0202 | 17 mm 发射机构的射击热量 |
-| 94 | `launcher_42_heat` | 0x0202 | 42 mm 发射机构的射击热量 |
-| 96 | `launcher_data` | 0x0207 | 最近一发的弹丸类型、发射机构 ID、射频与初速度 |
-| 103 | `shot_seq` | 0x0207 | 收到的 0x0207 帧数，每帧加 1，`uint16_t` 回绕 |
-| 105 | `robot_buff` | 0x0204 | 回血、冷却、防御、负防御、攻击增益与剩余能量 |
-| 113 | `radar_mark` | 0x020C | 雷达标记进度 |
-| 115 | `robot_damage` | 0x0206 | 最近一次扣血的装甲 ID 与血量变化类型 |
-| 116 | `hurt_seq` | 0x0206 | 收到的 0x0206 帧数，每帧加 1，`uint8_t` 回绕 |
-
-各字段保存对应命令码最近一次解析的数据段，未收到时为 0。订阅者比较相邻两包的 `shot_seq` 或 `hurt_seq` 判断其间是否有新的射击或扣血事件；摘要不带时间戳，接收时刻由订阅者记录。
+`RefereeTypes.hpp` 提供生产者拥有的 `RobotGameRefereePack` 及其组成类型（`GameStatus`、`RobotStatus`、`RobotPOS`、`RFID`、`RobotPosForSentry`、`SentryInfo`），包含 `<cstdint>`，主机端的订阅者可直接包含该头文件。`Referee::RobotGameRefereePack` 与 `Referee` 内的同名组成类型是这些类型的别名，紧凑布局共 116 字节。
 
 在构建中启用 `BUILD_TESTING` 后，目标 `referee_types_test` 在编译期检查 `RobotGameRefereePack` 的大小与字段偏移，运行方式为 `ctest -R referee_types_test`。
 
-`RefereeTypes.hpp` provides the producer-owned `RobotGameRefereePack` and its component types (`GameStatus`, `RobotStatus`, `RobotPOS`, `RFID`, `RobotPosForSentry`, `SentryInfo`, `RobotBuff`, `RobotDamage`, `LauncherData`, `RadarMarkProgress`). It includes `<cstdint>`, so host-side subscribers can include the header directly. `Referee::RobotGameRefereePack` and the component types of the same names inside `Referee` are aliases of these types; the packed layout is 117 bytes.
-
-The first 92 bytes of the summary are the robot status, game status, sentry info, RFID, 17 mm allowance, outpost and base HP, ground robot positions and the position of this robot; the following fields are appended after them:
-
-| Offset | Field | Source | Content |
-| --- | --- | --- | --- |
-| 92 | `launcher_17_heat` | 0x0202 | Shooting heat of the 17 mm launcher |
-| 94 | `launcher_42_heat` | 0x0202 | Shooting heat of the 42 mm launcher |
-| 96 | `launcher_data` | 0x0207 | Projectile type, launcher ID, fire rate and initial speed of the latest shot |
-| 103 | `shot_seq` | 0x0207 | Number of 0x0207 frames received, incremented per frame, wraps as `uint16_t` |
-| 105 | `robot_buff` | 0x0204 | Healing, cooling, defense, vulnerability and attack buffs and the remaining energy |
-| 113 | `radar_mark` | 0x020C | Radar marking progress |
-| 115 | `robot_damage` | 0x0206 | Armor ID and HP change type of the latest HP deduction |
-| 116 | `hurt_seq` | 0x0206 | Number of 0x0206 frames received, incremented per frame, wraps as `uint8_t` |
-
-Each field holds the data segment of the latest parsed frame of its command ID and is 0 until one is received. A subscriber compares `shot_seq` or `hurt_seq` of two consecutive packets to tell whether a shot or an HP deduction happened in between; the summary carries no timestamp, and the subscriber records the arrival time.
+`RefereeTypes.hpp` provides the producer-owned `RobotGameRefereePack` and its component types (`GameStatus`, `RobotStatus`, `RobotPOS`, `RFID`, `RobotPosForSentry`, `SentryInfo`). It includes `<cstdint>`, so host-side subscribers can include the header directly. `Referee::RobotGameRefereePack` and the component types of the same names inside `Referee` are aliases of these types; the packed layout is 116 bytes.
 
 With `BUILD_TESTING` enabled in the build, the target `referee_types_test` checks the size and field offsets of `RobotGameRefereePack` at compile time; it is run with `ctest -R referee_types_test`.
 
@@ -122,8 +92,8 @@ Configuration parameters (`Param`):
 | --- | --- | --- | --- |
 | `chassis_ref` | 发布 | `Referee::ChassisPack` | `RobotStatus`（等级、功率上限等）与底盘缓冲能量（J） |
 | `launcher_ref` | 发布 | `Referee::LauncherPack` | `RobotStatus`、`RobotBuff`、`LauncherData`、`DartClient`、`PowerHeat` |
-| `robot_game_ref` | 发布 | `Referee::RobotGameRefereePack` | 机器人状态、比赛状态、哨兵信息、RFID、17 mm 允许发弹量、前哨站与基地血量、机器人位置、射击热量、最近一发射击数据、增益、雷达标记进度、最近一次伤害数据 |
-| `radar_ref` | 创建 | `Referee::RadarPack` | 地面机器人位置与本机位置（x、y，单位 m） |
+| `robot_game_ref` | 发布 | `Referee::RobotGameRefereePack` | 机器人状态、比赛状态、哨兵信息、RFID、17 mm 允许发弹量、R/B 前哨站、双方基地血量、伤害差和控制度、机器人位置 |
+| `radar_ref` | 发布 | `Referee::RadarPack` | 地面机器人位置与本机位置（x、y，单位 m） |
 
 All Topics are multi-publisher Topics with configurable names.
 
@@ -131,8 +101,8 @@ All Topics are multi-publisher Topics with configurable names.
 | --- | --- | --- | --- |
 | `chassis_ref` | Publish | `Referee::ChassisPack` | `RobotStatus` (level, power limit, ...) and chassis power buffer (J) |
 | `launcher_ref` | Publish | `Referee::LauncherPack` | `RobotStatus`, `RobotBuff`, `LauncherData`, `DartClient`, `PowerHeat` |
-| `robot_game_ref` | Publish | `Referee::RobotGameRefereePack` | Robot status, game status, sentry info, RFID, 17 mm allowance, outpost and base HP, robot positions, shooting heat, data of the latest shot, buffs, radar marking progress, data of the latest damage |
-| `radar_ref` | Create | `Referee::RadarPack` | Ground robot positions and the position of this robot (x, y in m) |
+| `robot_game_ref` | Publish | `Referee::RobotGameRefereePack` | Robot status, game status, sentry info, RFID, 17 mm allowance, R/B outpost HP, both base HP values, damage difference and control degrees, robot positions |
+| `radar_ref` | Publish | `Referee::RadarPack` | Ground robot positions and the position of this robot (x, y in m) |
 
 ## 5. 配置示例 / Configuration Example
 
@@ -176,3 +146,59 @@ Dependencies:
 - LibXR.
 
 Hardware: a UART connected to the referee system (or the video link), driven through `LibXR::UART` and registered with `XR_REGISTER`.
+
+## 7. 2027 V1.0.0 迁移说明 / Migration
+
+依据《RoboMaster 2027 机甲大师高校系列赛通信协议 V1.0.0（20261029）》。
+固定消息按新版长度严格解码，不自动兼容 2025 数据。位域使用 GCC/Clang 的
+GNU 布局；Windows MinGW 主机测试须使用 `-mno-ms-bitfields`。
+
+- `RobotStatus` 为 17 字节，包含 `bullet_speed_limit`；`RobotBuff` 为 7 字节。
+- `RFID` 使用协议表 1-19 的 `rfid_status` / `rfid_status_2` 原始位掩码；
+  `FieldEvents` 使用表 1-9 的 `event_data` / `event_data_2`。
+  `RadarEnemyState` 使用表 1-44 的 `field_status` / `interaction_status`。
+  原 2025 位域名称已移除，避免沿用错误的场地含义。
+- `RobotGameRefereePack` 从 92 改为 **116 字节**。原 `our_outpose` / `red_base`
+  改为 `outpost_r_hp` / `outpost_b_hp` / `ally_base_hp` / `enemy_base_hp`，
+  并加入 `damage_difference`、`ally_control_degree`、`enemy_control_degree`。
+  R/B 指开局所在侧；上位机若直接传输该结构体，必须同步更新布局。
+- 重装位置使用 `heavy_x` / `heavy_y`，原工程位置改为保留位。机器人 ID
+  10/110 为基地，11/111 为 R/B 前哨，2/102 为保留位。
+- 哨兵 `State` 新增 `ENHANCED_ATTACK`、`ENHANCED_DEFEND`、`ENHANCED_MOVE`；
+  初始请求姿态为移动。`SetConfirmMechanism()` 设置新版 bit 24；设置后调用
+  `SendSentryPack()` 发送。兑换数量限制在 11 位范围，请求计数饱和而不回绕。
+- 雷达状态和决策增加装甲加固信息；`SendRadarDecision()` 发送完整 13 字节子内容。
+- `radar_ref` 现在随其他摘要 Topic 一起发布。
+
+### 图传接口 / Video-link API
+
+`SendCustomDataToTerminal(data, length)` 发送 0x0310，支持 0–300 字节；旧
+`SendCustomDataToController(CustomData2)` 名称保留，发送完整 300 字节。
+`GetCustomControl(control)` 获取最近收到的 0x0311，`control.length` 为实际长度
+（0–60），`control.data` 为透明字节。返回 true 后清除可读标志；首次收到之前
+返回 false。此接口缓存最新一条消息，多条消息在轮询前到达时会覆盖旧消息。
+需保留每条指令的应用应在上层设计序号/确认机制。
+
+常规链路保持 115200；连接图传发送端时，实例 `baudrate` 配置为 **921600**。
+两者是不同物理链路，不应直接把现有常规链路改成图传波特率。模块帧缓冲支持
+309 字节。BSP 的 UART 接收容量至少能容纳 304 字节，发送容量至少 309 字节；
+STM32UART 的 TX 配置缓冲被分为两半，建议配置 RX=512、TX=1024 或更大。
+调用者负责 0x0310 <= 50 Hz、交互帧 0x0301 总计 <= 30 Hz 等协议限频。
+
+旧 0x0302/0304/0306/0309/0x0F01/0x0F02 接口保留用于旧设备；2027 文档未定义
+这些消息，不将其视为已验证的 2027 图传接口。旧 0x0304 仍使用 CMD 的 DR16
+输入槽。MQTT/Protobuf 属于自定义终端侧，不由此 STM32 UART 模块实现。
+
+### 回归测试 / Regression tests
+
+在 BSP 根目录运行（主机需有 Python 和 GCC）：
+
+```sh
+python Modules/QDU-Robomaster/Referee/tests/run_host_tests.py --libxr Middlewares/Third_Party/LibXR
+```
+
+独立检出模块时也可运行 `python tests/run_host_tests.py --libxr /path/to/LibXR`。
+使用 `--cxx /path/to/g++` 指定主机编译器。测试保留生产协议方法与 LibXR CRC
+实现，仅替换 UART、线程、互斥锁和 Topic 等运行环境，并开放成员供断言检查。
+覆盖新版布局、固定长度拒收、CRC 错误、包头重同步、截断帧、哨兵/雷达发送字节、
+300 字节最大帧和 0x0311 可变长度。测试不代替硬件 DMA/并发/链路吞吐验证。
