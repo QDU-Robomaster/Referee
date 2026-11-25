@@ -471,7 +471,13 @@ class Referee
    * @brief 0x0207 实时射击数据，弹丸发射后发送。
    *        0x0207 real-time shooting data, sent after a projectile is fired.
    */
-  using LauncherData = RefereeTypes::LauncherData;
+  struct [[gnu::packed]] LauncherData
+  {
+    uint8_t bullet_type;   /* 弹丸类型 */
+    uint8_t launcherer_id; /* 发射机构 ID */
+    uint8_t bullet_freq;   /* 弹丸射速 Hz */
+    float bullet_speed;    /* 弹丸初速度 m/s */
+  };
 
   /**
    * @brief 0x0208 允许发弹量，10 Hz。
@@ -2285,7 +2291,6 @@ class Referee
         {
           return false;
         }
-        ++this->hurt_seq_;
         break;
       }
 
@@ -2296,7 +2301,6 @@ class Referee
         {
           return false;
         }
-        ++this->shot_seq_;
         break;
       }
 
@@ -2586,15 +2590,6 @@ class Referee
         this->data_.game_robot_hp.enemy_control_degree;
     this->robot_game_referee_pack_.sentry_pos = this->data_.sentry_pos;
     this->robot_game_referee_pack_.robot_pos = this->data_.robot_pos;
-    this->robot_game_referee_pack_.launcher_17_heat =
-        this->data_.power_heat.launcher_id1_17_heat;
-    this->robot_game_referee_pack_.launcher_42_heat = this->data_.power_heat.launcher_42_heat;
-    this->robot_game_referee_pack_.launcher_data = this->data_.launcher_data;
-    this->robot_game_referee_pack_.shot_seq = this->shot_seq_;
-    this->robot_game_referee_pack_.robot_buff = this->data_.robot_buff;
-    this->robot_game_referee_pack_.radar_mark = this->data_.radar_mark_progress;
-    this->robot_game_referee_pack_.robot_damage = this->data_.robot_damage;
-    this->robot_game_referee_pack_.hurt_seq = this->hurt_seq_;
     this->robot_game_referee_topic_.Publish(this->robot_game_referee_pack_);
     UpdateRadarPack();
     this->radar_pack_topic_.Publish(this->radar_pack_);

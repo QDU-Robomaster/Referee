@@ -128,13 +128,5 @@ struct [[gnu::packed]] RobotGameRefereePack
   uint16_t enemy_control_degree;
   RobotPosForSentry sentry_pos; /* 0x020B */
   RobotPOS robot_pos;
-  uint16_t launcher_17_heat;    /* 0x0202 17mm 发射机构的射击热量 */
-  uint16_t launcher_42_heat;    /* 0x0202 42mm 发射机构的射击热量 */
-  LauncherData launcher_data;   /* 0x0207 最近一发的射击数据 */
-  uint16_t shot_seq;            /* 0x0207 计数，每收到一帧加 1 */
-  RobotBuff robot_buff;         /* 0x0204 */
-  RadarMarkProgress radar_mark; /* 0x020C */
-  RobotDamage robot_damage;     /* 0x0206 最近一次的伤害数据 */
-  uint8_t hurt_seq;             /* 0x0206 计数，每收到一帧加 1 */
 };
 }  // namespace RefereeTypes
